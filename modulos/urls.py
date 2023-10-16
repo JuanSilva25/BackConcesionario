@@ -7,6 +7,11 @@ from modulos import views
 router = routers.DefaultRouter()
 router.register(r'usuario', views.UsuarioView, 'usuario')
 router.register(r'roles', views.RolesView, 'roles')
+router.register(r'permisoruta',views.PermisoRutasView,'permisoruta' )
+router.register(r'rutas',views.RutasView,'ruta' )
+router.register(r'categoriarespuesto',views.CategoriaRepuestoView,'categoriarepuesto')
+router.register(r'repuesto',views.RepuestoView,'repuesto' )
+router.register(r'ordentrabajo',views.OrdenTrabajoView, 'ordentrabajo')
 
 urlpatterns = [
     path('', include(router.urls)),

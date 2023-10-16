@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Usuario,Roles,PermisoRutas,Rutas,CategoriaRepuesto,Repuesto,OrdenTrabajo
+from .models import Usuario,Roles,PermisoRutas,Rutas,CategoriaRepuesto,Repuesto,OrdenTrabajo,InventarioVehiculo,InventarioRepuesto,Cotizacion,Sucursal,Vehiculo,Venta,DetalleVenta
 
 # Register your models here.
 admin.site.register(Usuario)
@@ -9,3 +9,10 @@ admin.site.register(CategoriaRepuesto)
 admin.site.register(Repuesto)
 admin.site.register(Rutas)
 admin.site.register(OrdenTrabajo)
+admin.site.register(InventarioVehiculo)
+admin.site.register(InventarioRepuesto)
+admin.site.register(Cotizacion)
+admin.site.register(Sucursal)
+admin.site.register(Vehiculo)
+admin.site.register(Venta)
+admin.site.register(DetalleVenta)

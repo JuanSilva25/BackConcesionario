@@ -25,5 +25,11 @@ urlpatterns = [
     path('rutas/', include('modulos.urls')),
     path('categoriarespuesto/', include('modulos.urls')),
     path('repuesto/', include('modulos.urls')),
-    path('ordentrabajo/', include('modulos.urls'))
+    path('ordentrabajo/', include('modulos.urls')),
+    path('inventariovehiculo/', include('modulos.urls')),
+    path('cotizacion/', include('modulos.urls')),
+    path('sucursal/',include('modulos.urls')),
+    path('vehiculo/',include('modulos.urls')),
+    path('venta/',include('modulos.urls')),
+    path('detalleventa/',include('modulos.urls'))
 ]

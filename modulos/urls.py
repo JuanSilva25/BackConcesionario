@@ -12,6 +12,13 @@ router.register(r'rutas',views.RutasView,'ruta' )
 router.register(r'categoriarespuesto',views.CategoriaRepuestoView,'categoriarepuesto')
 router.register(r'repuesto',views.RepuestoView,'repuesto' )
 router.register(r'ordentrabajo',views.OrdenTrabajoView, 'ordentrabajo')
+router.register(r'inventariovehiculo',views.InvVehiculoView, 'inventariovehiculo')
+router.register(r'inventariorepuesto',views.InvRepuestoView, 'inventariorepuesto')
+router.register(r'cotizacion',views.CotizacionView, 'cotizacion')
+router.register(r'sucursal',views.SucursalView, 'sucursal')
+router.register(r'vehiculo',views.VehiculoView, 'vehiculo')
+router.register(r'venta',views.VentaView, 'venta')
+router.register(r'detalleventa',views.DetalleVentaView, 'detalleventa')
 
 urlpatterns = [
     path('', include(router.urls)),

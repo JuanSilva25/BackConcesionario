@@ -22,7 +22,7 @@ class Usuario(models.Model):
     email = models.CharField(default="example@example.com")
     telefono = models.IntegerField(default=1234567890)
     direccion = models.CharField(default='Sin dirección')
-    rolId = models.ForeignKey(Roles, on_delete=models.SET_NULL, null=True, blank=True, db_column='rolId')
+    rol = models.ForeignKey(Roles, on_delete=models.SET_NULL, null=True, blank=True, db_column='rolId')
 
     def __str__(self):
         return self.username
@@ -57,20 +57,13 @@ class Rutas(models.Model):
           
 class CategoriaRepuesto(models.Model):
     tipoRepuesto = models.CharField(max_length=50, null=True)
-    motor = models.CharField(max_length=100, null=True)
-    transmision = models.CharField(max_length=100, null=True)
-    suspension = models.CharField(max_length=100, null=True)
-    llanta = models.CharField(max_length=100, null=True)
-    carroceria = models.CharField(max_length=100, null=True)
-    electrico = models.CharField(max_length=100, null=True)
-
-    def __str__(self):
+    
+    def __str__(self): 
         return self.tipoRepuesto
-
+    
     class Meta:
         db_table = 'CategoriaRepuesto'
         verbose_name_plural = 'CategoriaRepuestos'
-
           
 class Repuesto(models.Model):
     repuestoId = models.AutoField(primary_key=True)

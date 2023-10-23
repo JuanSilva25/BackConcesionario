@@ -11,7 +11,6 @@ class Roles(models.Model):
     class Meta:
         db_table = 'roles'
         verbose_name_plural = "roles"
-
 class Usuario(models.Model):
     idUsuario = models.AutoField(Roles, primary_key=True)
     username = models.CharField(max_length=100, unique=True)
@@ -21,7 +20,7 @@ class Usuario(models.Model):
     email = models.CharField(default="example@example.com")
     telefono = models.IntegerField(default=1234567890)
     direccion = models.CharField(default='Sin dirección')
-    rolId = models.ForeignKey(Roles, on_delete=models.SET_NULL, null=True, blank=True, db_column='rolId')
+    rol  = models.ForeignKey(Roles, on_delete=models.CASCADE)
 
     def __str__(self):
         return self.username

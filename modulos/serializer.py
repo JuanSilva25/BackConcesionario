@@ -3,9 +3,10 @@ from .models import Usuario, Roles,PermisoRutas,Rutas, CategoriaRepuesto,Repuest
 from .models import Sucursal,Vehiculo,Venta,DetalleVenta
 
 class UsuarioSerializer(serializers.ModelSerializer):
+    rol = serializers.SlugRelatedField(slug_field='rol', queryset=Roles.objects.all()) # Mostrar el nombre del 
+
     class Meta:
         model = Usuario
-        #fields = ('idUsuario','username','password','nombre','apellido','rolId')
         fields = '__all__'
 
 class RolesSerializer(serializers.ModelSerializer):

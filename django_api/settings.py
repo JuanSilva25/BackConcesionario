@@ -40,7 +40,6 @@ INSTALLED_APPS = [
     'corsheaders',
     'rest_framework',
     'modulos',
-    'coreapi'
 ]
 
 MIDDLEWARE = [
@@ -81,7 +80,7 @@ WSGI_APPLICATION = 'django_api.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': 'concesionariojj',
+        'NAME': 'concesionariojj2',
         'USER' : 'postgres',
         'PASSWORD': 'juan12',
         'HOST': 'localhost',
@@ -135,6 +134,4 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-CORS_ALLOWED_ORIGINS = [
-
-]
+CORS_ALLOWED_ORIGINS = ['http://localhost:5173']

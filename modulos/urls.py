@@ -22,5 +22,6 @@ router.register(r'detalleventa',views.DetalleVentaView, 'detalleventa')
 
 urlpatterns = [
     path('', include(router.urls)),
+    #path('api', include('modulos.urls')),
     #path('docs/', include_docs_urls(title='usuarios api')),
 ]

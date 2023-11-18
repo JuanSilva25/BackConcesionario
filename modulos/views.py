@@ -3,6 +3,7 @@ from .serializer import UsuarioSerializer,RolesSerializer,PermisoRutasSerializer
 from .serializer import InventarioRepuestoSerializer,CotizacionSerializer,VehiculoSerializer,SucursalSerializer,VentaSerializer,DetalleVentaSerializer
 from .models import Usuario,Roles,PermisoRutas,Rutas,CategoriaRepuesto,Repuesto,OrdenTrabajo,InventarioVehiculo,InventarioRepuesto,Cotizacion,Sucursal,Vehiculo,Venta,DetalleVenta
 
+
 # Create your views here.
 class UsuarioView(viewsets.ModelViewSet):
     serializer_class = UsuarioSerializer

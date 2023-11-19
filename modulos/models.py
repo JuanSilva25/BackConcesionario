@@ -2,7 +2,7 @@ import datetime
 from django.db import models
 from django.db.models.signals import post_save, post_delete, pre_save
 from django.dispatch import receiver
-
+from django.contrib.auth.models import User
 
 class Roles(models.Model):
     id = models.AutoField(primary_key=True)
@@ -25,16 +25,16 @@ class Usuario(models.Model):
     email = models.CharField(default="example@example.com")
     telefono = models.IntegerField(default=1234567890)
     direccion = models.CharField(default='Sin dirección')
-    rol = models.ForeignKey(Roles, on_delete=models.SET_NULL, null=True, blank=True, db_column='rolId')
+    rol = models.ForeignKey(Roles, on_delete=models.SET_NULL, null=True, blank=True, db_column='rol')
 
     def __str__(self):
-        return self.username
+        return self.rol.rol
     
     def get_rol(self):
         if self.rol:
             return self.rol.rol
         return "Sin Rol"  # Otra opción si el rol es nulo.
-
+    
     class Meta:
         db_table = 'usuarios'
         verbose_name_plural = "usuarios"
@@ -42,7 +42,8 @@ class Usuario(models.Model):
 
 class Rutas(models.Model):
     idRuta = models.AutoField(primary_key= True)
-    nombreRuta = models.CharField(default='Sin nombre')
+    nombreRuta = models.CharField(max_length=100)
+    descripcion_Ruta =models.CharField(max_length = 50,default='sin rutas2')
   
      
     def __str__(self):
@@ -54,17 +55,19 @@ class Rutas(models.Model):
           
 class PermisoRutas(models.Model):
     idPermiso = models.AutoField(primary_key=True)
-    rolId = models.ForeignKey(Roles, on_delete=models.CASCADE)  # Relación ForeignKey a la tabla Roles
-    rutas = models.ManyToManyField(Rutas)  # Relación ManyToManyField a la tabla Rutas
+    rolId = models.ForeignKey(Roles, on_delete=models.CASCADE)
+    rutas = models.ManyToManyField(Rutas)
+
+    def get_rutas(self):
+        return ', '.join(str(ruta) for ruta in self.rutas.all())
 
     def __str__(self):
-        return f"Permiso para {self.rolId} en rutas: {', '.join(str(ruta) for ruta in self.rutas.all())}"
+        return f"Permiso para {self.rolId} en rutas: {self.get_rutas()}"
 
     class Meta:
         db_table = 'permisoRutas'
         verbose_name_plural = 'permisoRutas'
-            
-
+    
 class CategoriaRepuesto(models.Model):
     tipoRepuesto = models.CharField(max_length=50, null=True)
     
@@ -144,17 +147,7 @@ def eliminar_vehiculo_de_inventario(sender, instance, **kwargs):
         pass
 
 
-class InventarioRepuesto(models.Model):
-    invRepuestolId = models.AutoField(primary_key=True)
-    repuesto = models.ForeignKey('Repuesto', on_delete=models.CASCADE, null=True)
-  
 
-    def __str__(self):
-        return f'InventarioRepuesto {self.invRepuestolId} - Repuesto: {self.repuesto}'
-
-    class Meta:
-        db_table = 'InventarioRepuesto'
-        verbose_name_plural = 'InventarioRepuesto'
 
 class Repuesto(models.Model):
     repuestoId = models.AutoField(primary_key=True)
@@ -184,12 +177,37 @@ def eliminar_repuesto_de_inventario(sender, instance, **kwargs):
     except InventarioRepuesto.DoesNotExist:
         pass
 
+class InventarioRepuesto(models.Model):
+    invRepuestolId = models.AutoField(primary_key=True)
+    repuesto = models.ForeignKey('Repuesto', on_delete=models.CASCADE, null=True)
+
+    def __str__(self):
+        return f'InventarioRepuesto {self.invRepuestolId} - Repuesto: {self.repuesto}'
+
+    class Meta:
+        db_table = 'InventarioRepuesto'
+        verbose_name_plural = 'InventarioRepuesto'
+
+@receiver(post_save, sender=Repuesto)
+def agregar_repuesto_a_inventario(sender, instance, created, **kwargs):
+    if created:
+        InventarioRepuesto.objects.create(repuesto=instance)
+
+@receiver(post_delete, sender=Repuesto)
+def eliminar_repuesto_de_inventario(sender, instance, **kwargs):
+    try:
+        inventario_repuesto = InventarioRepuesto.objects.get(repuesto=instance)
+        inventario_repuesto.delete()
+    except InventarioRepuesto.DoesNotExist:
+        pass
+
 class Cotizacion(models.Model):
     cotizacionId = models.AutoField(primary_key =True)
     vehiculo = models.ForeignKey('Vehiculo', on_delete=models.CASCADE, null=True)
     usuario = models.ForeignKey('Usuario', on_delete=models.CASCADE,  null=True, limit_choices_to={'rol__id': 1})
     fecha = models.CharField(default=datetime.date.today)
     precio = models.FloatField()
+    permiso_Cotizaciones= models.OneToOneField(PermisoRutas, on_delete=models.CASCADE, null=True, limit_choices_to={'idPermiso': 7})
 
     def __str__(self):
         return f"Cotización {self.cotizacionId} - Vehículo: {self.vehiculo}, Usuario: {self.usuario}"
@@ -197,6 +215,8 @@ class Cotizacion(models.Model):
     class Meta:
         db_table = 'Cotizacion'
         verbose_name_plural = 'Cotizacion'
+
+
 
 class Sucursal(models.Model):
     sucursalId= models.AutoField(primary_key =True)
@@ -213,16 +233,15 @@ class Sucursal(models.Model):
                             
              
 class Venta(models.Model):
-    ventaId= models.AutoField(primary_key =True)
-    vendedor = models.ForeignKey('Usuario', on_delete=models.CASCADE,  null=True,limit_choices_to={'rol__id': 1})
+    ventaId = models.AutoField(primary_key=True)
+    vendedor_id = models.ForeignKey('Usuario', on_delete=models.CASCADE, null=True, limit_choices_to={'rol': 1})
     fecha = models.CharField(default=datetime.date.today)
-    vehiculo = models.ForeignKey('Vehiculo', on_delete=models.CASCADE, null=True)
-    nombreCliente = models.CharField(default= 'a')
-    apellidoCliente = models.CharField(default= 'a')
-    identificacion =  models.IntegerField(default= 1234567890)
-    telefonoCliente = models.PositiveBigIntegerField(default= 1234567890)
+    nombreCliente = models.CharField(default='a')
+    apellidoCliente = models.CharField(default='a')
+    identificacion = models.IntegerField(default=1234567890)
+    telefonoCliente = models.PositiveBigIntegerField(default=1234567890)
     correo = models.CharField(max_length=100, default='example@gmail.com')
-    sucursal = models.ForeignKey(Sucursal, on_delete=models.CASCADE, null=True)
+    sucursal = models.ForeignKey(Sucursal, on_delete=models.CASCADE, null=True, limit_choices_to={})
 
     METODO_PAGO_CHOICES = [
         ('efectivo', 'Efectivo'),
@@ -231,48 +250,36 @@ class Venta(models.Model):
         ('cheque', 'Cheque'),
     ]
 
-    metodoPago = models.CharField(default='efectivo' ,choices= METODO_PAGO_CHOICES)
-    precioTotal = models.FloatField(default=0.0 ,editable=False, blank=True)
-
+    metodoPago = models.CharField(default='efectivo', choices=METODO_PAGO_CHOICES)
+    precioTotal = models.FloatField(default=0.0, editable=False, blank=True)
 
     def __str__(self):
-       return str(self.ventaId)  # Devuelve el número de venta como cadena
-    
+        return str(self.ventaId)  # Devuelve el número de venta como cadena
+
     class Meta:
-        db_table ='Venta'
-        verbose_name_plural = 'Venta'
-        
-        
+        db_table = 'Venta'
+
+
 class DetalleVenta(models.Model):
     detalleVentaId = models.AutoField(primary_key=True)
     venta = models.ForeignKey(Venta, on_delete=models.CASCADE, null=True)
+    vehiculo = models.ForeignKey('Vehiculo', on_delete=models.CASCADE, null=True, blank=True)
+    repuesto = models.ForeignKey('Repuesto', on_delete=models.CASCADE, null=True, blank=True)
     cantidad = models.PositiveIntegerField()
     precioUnitario = models.DecimalField(max_digits=10, decimal_places=2, default=0.0, editable=False)
     total = models.DecimalField(max_digits=10, decimal_places=2, default=0.0, editable=False, blank=True)
 
-    def save(self, *args, **kwargs):
-        if not self.precioUnitario:
-            # Calcular el precioUnitario basado en el vehículo seleccionado
-            if self.venta and self.venta.vehiculo:
-                self.precioUnitario = self.venta.vehiculo.precio
-            else:
-                self.precioUnitario = 0.0  # Puedes configurar otro valor predeterminado
-
-        # Calcular el total en función de la cantidad y el precioUnitario
-        self.total = self.cantidad * self.precioUnitario
-        super().save(*args, **kwargs)
-
-    def __str__(self):
-        return str(self.detalleVentaId)
-    
 @receiver(post_save, sender=DetalleVenta)
 def actualizar_precio_total_venta(sender, instance, **kwargs):
     # Obtén la venta asociada al detalle
     venta = instance.venta
-    
-    # Calcula el precioTotal como la suma de los totales de todos los detalles de la venta
-    precio_total = sum(detalle.total for detalle in venta.detalleventa_set.all())
-    
-    # Actualiza el precioTotal de la venta
-    venta.precioTotal = precio_total
-    venta.save()    
+
+    # Calcula el precioTotal para vehículos
+    precio_total_vehiculo = sum(detalle.total for detalle in venta.detalleventa_set.filter(vehiculo__isnull=False))
+
+    # Calcula el precioTotal para repuestos
+    precio_total_repuesto = sum(detalle.total for detalle in venta.detalleventa_set.filter(repuesto__isnull=False))
+
+    # Actualiza el precioTotal de la venta sumando ambos totales
+    venta.precioTotal = precio_total_vehiculo + precio_total_repuesto
+    venta.save()

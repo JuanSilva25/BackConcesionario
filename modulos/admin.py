@@ -18,5 +18,5 @@ admin.site.register(Vehiculo)
 admin.site.register(Venta)
 admin.site.register(Permission)
 admin.site.register(ContentType)
-
+admin.site.register(DetalleVenta)
 

@@ -42,7 +42,8 @@ class Usuario(models.Model):
 
 class Rutas(models.Model):
     idRuta = models.AutoField(primary_key= True)
-    nombreRuta = models.CharField(default='Sin nombre')
+    nombreRuta = models.CharField(max_length=100)
+    descripcion_Ruta =models.CharField(max_length = 50,default='sin rutas2')
   
      
     def __str__(self):
@@ -57,12 +58,21 @@ class PermisoRutas(models.Model):
     rolId = models.ForeignKey(Roles, on_delete=models.CASCADE)  # Relación ForeignKey a la tabla Roles
     rutas = models.ManyToManyField(Rutas)  # Relación ManyToManyField a la tabla Rutas
 
-    def __str__(self):
-        return f"Permiso para {self.rolId} en rutas: {', '.join(str(ruta) for ruta in self.rutas.all())}"
+def get_ruta(self):
+        if self.rutas:
+            return self.rutas.rutas
+        return "Sin Ruta"  # Otra opción si el rol es nulo.
 
-    class Meta:
+def __str__(self):
+        return f"Permiso para {self.rolId} en rutas: {', '.join(str(ruta) for ruta in self.rutas.all())}"
+    
+class Meta:
         db_table = 'permisoRutas'
         verbose_name_plural = 'permisoRutas'
+        
+        
+
+  
 
 
 class CategoriaRepuesto(models.Model):
@@ -214,19 +224,17 @@ class Sucursal(models.Model):
         db_table = 'Sucursal'
         verbose_name_plural= 'Sucursal'
                             
-             
 class Venta(models.Model):
-    ventaId= models.AutoField(primary_key =True)
-    vendedor_id = models.ForeignKey('Usuario', on_delete=models.CASCADE,  null=True,limit_choices_to={'rol': 1})
+    ventaId = models.AutoField(primary_key=True)
+    vendedor_id = models.ForeignKey('Usuario', on_delete=models.CASCADE, null=True, limit_choices_to={'rol': 1})
     fecha = models.CharField(default=datetime.date.today)
-    vehiculo = models.ForeignKey('Vehiculo', on_delete=models.CASCADE, null=True,limit_choices_to={})
-    nombreCliente = models.CharField(default= 'a')
-    apellidoCliente = models.CharField(default= 'a')
-    identificacion =  models.IntegerField(default= 1234567890)
-    telefonoCliente = models.PositiveBigIntegerField(default= 1234567890)
+    nombreCliente = models.CharField(default='a')
+    apellidoCliente = models.CharField(default='a')
+    identificacion = models.IntegerField(default=1234567890)
+    telefonoCliente = models.PositiveBigIntegerField(default=1234567890)
     correo = models.CharField(max_length=100, default='example@gmail.com')
-    sucursal = models.ForeignKey(Sucursal, on_delete=models.CASCADE, null=True,limit_choices_to={})
-  
+    sucursal = models.ForeignKey(Sucursal, on_delete=models.CASCADE, null=True, limit_choices_to={})
+
     METODO_PAGO_CHOICES = [
         ('efectivo', 'Efectivo'),
         ('tarjeta', 'Tarjeta de crédito'),
@@ -234,23 +242,20 @@ class Venta(models.Model):
         ('cheque', 'Cheque'),
     ]
 
-    metodoPago = models.CharField(default='efectivo' ,choices= METODO_PAGO_CHOICES)
-    precioTotal = models.FloatField(default=0.0 ,editable=False, blank=True)
+    metodoPago = models.CharField(default='efectivo', choices=METODO_PAGO_CHOICES)
+    precioTotal = models.FloatField(default=0.0, editable=False, blank=True)
 
-    permiso_Ventas= models.OneToOneField(PermisoRutas, on_delete=models.CASCADE, null=True, limit_choices_to={'idPermiso': 7})
-    
-   
-    def __str__(self):
-       return str(self.ventaId)  # Devuelve el número de venta como cadena
-    
+    def _str_(self):
+        return str(self.ventaId)  # Devuelve el número de venta como cadena
+
     class Meta:
-        db_table ='Venta'
+        db_table = 'Venta'
 
 
-        
 class DetalleVenta(models.Model):
     detalleVentaId = models.AutoField(primary_key=True)
     venta = models.ForeignKey(Venta, on_delete=models.CASCADE, null=True)
+    vehiculo = models.ForeignKey('Vehiculo', on_delete=models.CASCADE, null=True)
     cantidad = models.PositiveIntegerField()
     precioUnitario = models.DecimalField(max_digits=10, decimal_places=2, default=0.0, editable=False)
     total = models.DecimalField(max_digits=10, decimal_places=2, default=0.0, editable=False, blank=True)
@@ -258,8 +263,8 @@ class DetalleVenta(models.Model):
     def save(self, *args, **kwargs):
         if not self.precioUnitario:
             # Calcular el precioUnitario basado en el vehículo seleccionado
-            if self.venta and self.venta.vehiculo:
-                self.precioUnitario = self.venta.vehiculo.precio
+            if self.vehiculo:
+                self.precioUnitario = self.vehiculo.precio
             else:
                 self.precioUnitario = 0.0  # Puedes configurar otro valor predeterminado
 
@@ -267,17 +272,17 @@ class DetalleVenta(models.Model):
         self.total = self.cantidad * self.precioUnitario
         super().save(*args, **kwargs)
 
-    def __str__(self):
+    def _str_(self):
         return str(self.detalleVentaId)
-    
+
 @receiver(post_save, sender=DetalleVenta)
 def actualizar_precio_total_venta(sender, instance, **kwargs):
     # Obtén la venta asociada al detalle
     venta = instance.venta
-    
+
     # Calcula el precioTotal como la suma de los totales de todos los detalles de la venta
     precio_total = sum(detalle.total for detalle in venta.detalleventa_set.all())
-    
+
     # Actualiza el precioTotal de la venta
     venta.precioTotal = precio_total
-    venta.save()    
+    venta.save()

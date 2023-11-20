@@ -2,10 +2,11 @@ from rest_framework import viewsets
 from .serializer import UsuarioSerializer,RolesSerializer,PermisoRutasSerializer,RutasSerializer,CategoriaRepuestoSerializer,RepuestoSerializer,OrdenTrabajoSerializer,InventarioVehiculoSerializer
 from .serializer import InventarioRepuestoSerializer,CotizacionSerializer,VehiculoSerializer,SucursalSerializer,VentaSerializer,DetalleVentaSerializer
 from .models import Usuario,Roles,PermisoRutas,Rutas,CategoriaRepuesto,Repuesto,OrdenTrabajo,InventarioVehiculo,InventarioRepuesto,Cotizacion,Sucursal,Vehiculo,Venta,DetalleVenta
+from django.contrib.auth import authenticate, login
+from django.http import HttpResponse
+from django.views.decorators.csrf import csrf_exempt
 
 
-
-# Create your views here.
 class UsuarioView(viewsets.ModelViewSet):
     serializer_class = UsuarioSerializer
     queryset = Usuario.objects.all()
@@ -70,3 +71,23 @@ class VentaView(viewsets.ModelViewSet):
 class DetalleVentaView(viewsets.ModelViewSet):
       serializer_class = DetalleVentaSerializer
       queryset = DetalleVenta.objects.all()
+
+
+@csrf_exempt
+def login_view(request):
+    print("La vista de inicio de sesión se ha llamado")  # Esta línea se imprimirá cada vez que se llame a la vista
+    if request.method == 'POST':
+        username = request.POST['username']
+        password = request.POST['password']
+        print(f"Intentando iniciar sesión con el usuario {username}")  # Esta línea se imprimirá cuando se haga una solicitud POST
+        user = authenticate(request, username=username, password=password)
+        if user is not None:
+            login(request, user)
+            print("Inicio de sesión exitoso")  # Esta línea se imprimirá cuando el inicio de sesión sea exitoso
+            return HttpResponse("Inicio de sesión exitoso")
+        else:
+            print("Credenciales inválidas")  # Esta línea se imprimirá cuando las credenciales sean inválidas
+            return HttpResponse("Credenciales inválidas")
+    else:
+        print("Método no permitido")  # Esta línea se imprimirá cuando el método de la solicitud no sea POST
+        return HttpResponse("Método no permitido")

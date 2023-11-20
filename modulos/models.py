@@ -3,7 +3,7 @@ from django.db import models
 from django.db.models.signals import post_save, post_delete, pre_save
 from django.dispatch import receiver
 from django.contrib.auth.models import User
-
+from django.db.models import Sum
 class Roles(models.Model):
     id = models.AutoField(primary_key=True)
     rol = models.CharField(max_length=50)
@@ -129,7 +129,7 @@ class Vehiculo(models.Model):
     marca = models.CharField(max_length=100)
     nombre = models.CharField(max_length=100, null=True)
     precio = models.FloatField()
-    img = models.CharField(max_length=100)
+    img = models.URLField(max_length=300)  # Cambiado a URLField
     color = models.CharField(max_length=100)
     modelo = models.IntegerField()
      
@@ -223,7 +223,9 @@ class Sucursal(models.Model):
     class Meta:
         db_table = 'Sucursal'
         verbose_name_plural= 'Sucursal'
-                            
+        
+        
+        
 class Venta(models.Model):
     ventaId = models.AutoField(primary_key=True)
     vendedor_id = models.ForeignKey('Usuario', on_delete=models.CASCADE, null=True, limit_choices_to={'rol': 1})
@@ -251,38 +253,28 @@ class Venta(models.Model):
     class Meta:
         db_table = 'Venta'
 
-
 class DetalleVenta(models.Model):
     detalleVentaId = models.AutoField(primary_key=True)
     venta = models.ForeignKey(Venta, on_delete=models.CASCADE, null=True)
-    vehiculo = models.ForeignKey('Vehiculo', on_delete=models.CASCADE, null=True)
-    cantidad = models.PositiveIntegerField()
-    precioUnitario = models.DecimalField(max_digits=10, decimal_places=2, default=0.0, editable=False)
-    total = models.DecimalField(max_digits=10, decimal_places=2, default=0.0, editable=False, blank=True)
+    vehiculo = models.ForeignKey('Vehiculo', on_delete=models.CASCADE, null=True, blank=True)
+    repuesto = models.ForeignKey('Repuesto', on_delete=models.CASCADE, null=True, blank=True)
+    cantidad_vehiculo = models.PositiveIntegerField(default=0)
+    cantidad_repuesto = models.PositiveIntegerField(default=0)
+    total_vehiculo = models.DecimalField(max_digits=10, decimal_places=2, default=0.0, editable=False)
+    total_repuesto = models.DecimalField(max_digits=10, decimal_places=2, default=0.0, editable=False)
+
+    def actualizar_precio_total(self):
+        # Calcular el total para vehículo y repuesto
+        self.total_vehiculo = self.cantidad_vehiculo * self.vehiculo.precio if self.vehiculo else 0
+        self.total_repuesto = self.cantidad_repuesto * self.repuesto.precio if self.repuesto else 0
+
+        # Calcular el precioTotal de la venta sumando los totales de detalles asociados
+        precio_total_vehiculo = DetalleVenta.objects.filter(venta=self.venta, vehiculo__isnull=False).aggregate(Sum('total_vehiculo'))['total_vehiculo__sum'] or 0
+        precio_total_repuesto = DetalleVenta.objects.filter(venta=self.venta, repuesto__isnull=False).aggregate(Sum('total_repuesto'))['total_repuesto__sum'] or 0
+
+        self.venta.precioTotal = precio_total_vehiculo + precio_total_repuesto
+        self.venta.save()
 
     def save(self, *args, **kwargs):
-        if not self.precioUnitario:
-            # Calcular el precioUnitario basado en el vehículo seleccionado
-            if self.vehiculo:
-                self.precioUnitario = self.vehiculo.precio
-            else:
-                self.precioUnitario = 0.0  # Puedes configurar otro valor predeterminado
-
-        # Calcular el total en función de la cantidad y el precioUnitario
-        self.total = self.cantidad * self.precioUnitario
-        super().save(*args, **kwargs)
-
-    def _str_(self):
-        return str(self.detalleVentaId)
-
-@receiver(post_save, sender=DetalleVenta)
-def actualizar_precio_total_venta(sender, instance, **kwargs):
-    # Obtén la venta asociada al detalle
-    venta = instance.venta
-
-    # Calcula el precioTotal como la suma de los totales de todos los detalles de la venta
-    precio_total = sum(detalle.total for detalle in venta.detalleventa_set.all())
-
-    # Actualiza el precioTotal de la venta
-    venta.precioTotal = precio_total
-    venta.save()
+        super().save(*args, **kwargs)  # Guardar el detalle primero
+        self.actualizar_precio_total()  # Luego actualizar el precio total

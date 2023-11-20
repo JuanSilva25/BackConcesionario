@@ -35,7 +35,7 @@ class PermisoRutasSerializer(serializers.ModelSerializer):
 class RutasSerializer(serializers.ModelSerializer):
     class Meta:
         model = Rutas
-        fields = ['idRuta']
+        fields = '__all__'
         
         
 

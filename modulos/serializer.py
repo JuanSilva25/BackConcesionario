@@ -3,10 +3,18 @@ from .models import Usuario, Roles,PermisoRutas,Rutas, CategoriaRepuesto,Repuest
 from .models import Sucursal,Vehiculo,Venta,DetalleVenta
 
 class UsuarioSerializer(serializers.ModelSerializer):
+    rol_name = serializers.SerializerMethodField()
+
     class Meta:
         model = Usuario
-        #fields = ('idUsuario','username','password','nombre','apellido','rolId')
         fields = '__all__'
+
+    def get_rol_name(self, instance):
+        if instance.rol:
+            return instance.rol.rol
+        return "Sin Rol"
+
+
 
 class RolesSerializer(serializers.ModelSerializer):
     class Meta:
@@ -14,14 +22,22 @@ class RolesSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class PermisoRutasSerializer(serializers.ModelSerializer):
+    ruta_names = serializers.SerializerMethodField()
+
     class Meta:
         model = PermisoRutas
-        fields  = ('idPermiso','rolId')
+        fields = ('idPermiso', 'rolId', 'rutas', 'ruta_names')
+
+    def get_ruta_names(self, instance):
+        return [ruta.nombreRuta for ruta in instance.rutas.all()] if instance.rutas.exists() else ["Sin Ruta"]
+
         
 class RutasSerializer(serializers.ModelSerializer):
     class Meta:
         model = Rutas
-        fields = ['idRuta']
+        fields = ['idRuta','nombreRuta', 'descripcion_Ruta']
+        
+        
 
 class CategoriaRepuestoSerializer(serializers.ModelSerializer):
      class Meta:
@@ -66,10 +82,12 @@ class VehiculoSerializer(serializers.ModelSerializer):
         fields = '__all__'
      
 class VentaSerializer(serializers.ModelSerializer):
-      class Meta:
+     
+     class Meta:
         model= Venta
         fields = '__all__'
-        
+
+
 class DetalleVentaSerializer(serializers.ModelSerializer):
       class Meta:
         model= DetalleVenta

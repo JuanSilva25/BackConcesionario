@@ -66,3 +66,27 @@ class VentaView(viewsets.ModelViewSet):
 class DetalleVentaView(viewsets.ModelViewSet):
       serializer_class = DetalleVentaSerializer
       queryset = DetalleVenta.objects.all()
+
+from django.contrib.auth import authenticate, login
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+
+@csrf_exempt
+def login_view(request):
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+
+        # Autenticar al usuario
+        user = authenticate(request, username=username, password=password)
+
+        if user is not None:
+            # Iniciar sesión
+            login(request, user)
+
+            # Puedes devolver cualquier información adicional que desees en el JSON de respuesta
+            return JsonResponse({'message': 'Login exitoso'})
+        else:
+            return JsonResponse({'message': 'Credenciales inválidas'}, status=401)
+
+    return JsonResponse({'message': 'Método no permitido'}, status=405)

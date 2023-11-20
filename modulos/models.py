@@ -3,6 +3,10 @@ from django.db import models
 from django.db.models.signals import post_save, post_delete, pre_save
 from django.dispatch import receiver
 from django.contrib.auth.models import User
+from django.db.models import F,Q, Sum
+from decimal import Decimal
+
+
 
 class Roles(models.Model):
     id = models.AutoField(primary_key=True)
@@ -69,8 +73,9 @@ class PermisoRutas(models.Model):
         verbose_name_plural = 'permisoRutas'
     
 class CategoriaRepuesto(models.Model):
-    tipoRepuesto = models.CharField(max_length=50, null=True)
-    
+    idCategoria = models.AutoField(primary_key=True)
+    tipoRepuesto = models.CharField(max_length=50, null=True, blank=True, default=None)
+
     def __str__(self): 
         return self.tipoRepuesto
     
@@ -109,6 +114,7 @@ class OrdenTrabajo(models.Model):
 class InventarioVehiculo(models.Model):
     invVehiculoId = models.AutoField(primary_key=True)
     vehiculo = models.ForeignKey('Vehiculo', on_delete=models.CASCADE,null=True)
+    cantidad = models.PositiveIntegerField(default=0)
 
     def __str__(self):
         return f"InventarioVehiculo {self.invVehiculoId} - Vehículo: {self.vehiculo}"
@@ -122,7 +128,7 @@ class Vehiculo(models.Model):
     marca = models.CharField(max_length=100)
     nombre = models.CharField(max_length=100, null=True)
     precio = models.FloatField()
-    img = models.CharField(max_length=100)
+    img = models.URLField(max_length=300, default='sin imagen')
     color = models.CharField(max_length=100)
     modelo = models.IntegerField()
      
@@ -146,19 +152,16 @@ def eliminar_vehiculo_de_inventario(sender, instance, **kwargs):
     except InventarioVehiculo.DoesNotExist:
         pass
 
-
-
-
 class Repuesto(models.Model):
     repuestoId = models.AutoField(primary_key=True)
     nombreRepuesto = models.ForeignKey(CategoriaRepuesto, on_delete=models.SET_NULL, null=True, blank=True)
     descripcion = models.CharField(max_length=100)
-    unidades = models.PositiveIntegerField()
     precio = models.FloatField()
     fechaFabriacion = models.CharField(default=datetime.date.today)
+    img = models.URLField(max_length=300, default='sin imagen')  # Cambiado a URLField
 
     def __str__(self):
-        return f'Repuesto {self.repuestoId} - Nombre: {self.nombreRepuesto}, Unidades: {self.unidades}'
+        return f'Repuesto {self.repuestoId} - Nombre: {self.nombreRepuesto}'
 
     class Meta:
         db_table = 'Repuesto'
@@ -180,6 +183,7 @@ def eliminar_repuesto_de_inventario(sender, instance, **kwargs):
 class InventarioRepuesto(models.Model):
     invRepuestolId = models.AutoField(primary_key=True)
     repuesto = models.ForeignKey('Repuesto', on_delete=models.CASCADE, null=True)
+    cantidad = models.PositiveIntegerField(default=0)
 
     def __str__(self):
         return f'InventarioRepuesto {self.invRepuestolId} - Repuesto: {self.repuesto}'
@@ -208,6 +212,9 @@ class Cotizacion(models.Model):
     fecha = models.CharField(default=datetime.date.today)
     precio = models.FloatField()
     permiso_Cotizaciones= models.OneToOneField(PermisoRutas, on_delete=models.CASCADE, null=True, limit_choices_to={'idPermiso': 7})
+    nombreCliente = models.CharField(default='a')
+    apellidoCliente = models.CharField(default='a')
+    identificacion = models.IntegerField(default=1234567890)
 
     def __str__(self):
         return f"Cotización {self.cotizacionId} - Vehículo: {self.vehiculo}, Usuario: {self.usuario}"
@@ -215,8 +222,6 @@ class Cotizacion(models.Model):
     class Meta:
         db_table = 'Cotizacion'
         verbose_name_plural = 'Cotizacion'
-
-
 
 class Sucursal(models.Model):
     sucursalId= models.AutoField(primary_key =True)
@@ -251,7 +256,7 @@ class Venta(models.Model):
     ]
 
     metodoPago = models.CharField(default='efectivo', choices=METODO_PAGO_CHOICES)
-    precioTotal = models.FloatField(default=0.0, editable=False, blank=True)
+    precioTotal = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.0'), editable=False, blank=True)
 
     def __str__(self):
         return str(self.ventaId)  # Devuelve el número de venta como cadena
@@ -265,21 +270,36 @@ class DetalleVenta(models.Model):
     venta = models.ForeignKey(Venta, on_delete=models.CASCADE, null=True)
     vehiculo = models.ForeignKey('Vehiculo', on_delete=models.CASCADE, null=True, blank=True)
     repuesto = models.ForeignKey('Repuesto', on_delete=models.CASCADE, null=True, blank=True)
-    cantidad = models.PositiveIntegerField()
-    precioUnitario = models.DecimalField(max_digits=10, decimal_places=2, default=0.0, editable=False)
-    total = models.DecimalField(max_digits=10, decimal_places=2, default=0.0, editable=False, blank=True)
+    cantidad_vehiculo = models.PositiveIntegerField(default=0)
+    cantidad_repuesto = models.PositiveIntegerField(default=0)
+    precio_unitario_vehiculo = models.DecimalField(max_digits=10, decimal_places=2, default=0.0, editable=False)
+    precio_unitario_repuesto = models.DecimalField(max_digits=10, decimal_places=2, default=0.0, editable=False)
+    total_vehiculo = models.DecimalField(max_digits=10, decimal_places=2, default=0.0, editable=False)
+    total_repuesto = models.DecimalField(max_digits=10, decimal_places=2, default=0.0, editable=False)
 
-@receiver(post_save, sender=DetalleVenta)
-def actualizar_precio_total_venta(sender, instance, **kwargs):
-    # Obtén la venta asociada al detalle
-    venta = instance.venta
+    class Meta:
+        db_table = 'DetalleVenta'
 
-    # Calcula el precioTotal para vehículos
-    precio_total_vehiculo = sum(detalle.total for detalle in venta.detalleventa_set.filter(vehiculo__isnull=False))
+    def save(self, *args, **kwargs):
+        if self.vehiculo:
+            self.precio_unitario_vehiculo = self.vehiculo.precio
+            self.total_vehiculo = self.cantidad_vehiculo * self.precio_unitario_vehiculo
 
-    # Calcula el precioTotal para repuestos
-    precio_total_repuesto = sum(detalle.total for detalle in venta.detalleventa_set.filter(repuesto__isnull=False))
+        if self.repuesto:
+            self.precio_unitario_repuesto = self.repuesto.precio
+            self.total_repuesto = self.cantidad_repuesto * self.precio_unitario_repuesto
 
-    # Actualiza el precioTotal de la venta sumando ambos totales
-    venta.precioTotal = precio_total_vehiculo + precio_total_repuesto
-    venta.save()
+        # Guardar el objeto después de calcular los totales
+        super().save(*args, **kwargs)
+
+        # Actualizar el precioTotal de la venta después de guardar el detalle
+        self.actualizar_precio_total_venta()
+
+    def actualizar_precio_total_venta(self):
+        # Calcular el precioTotal de la venta sumando los totales de detalles asociados
+        precio_total_vehiculo = DetalleVenta.objects.filter(venta=self.venta, vehiculo__isnull=False).aggregate(Sum('total_vehiculo'))['total_vehiculo__sum'] or Decimal('0.00')
+        precio_total_repuesto = DetalleVenta.objects.filter(venta=self.venta, repuesto__isnull=False).aggregate(Sum('total_repuesto'))['total_repuesto__sum'] or Decimal('0.00')
+
+        # Actualizar el precioTotal de la venta
+        self.venta.precioTotal = precio_total_vehiculo + precio_total_repuesto
+        self.venta.save()

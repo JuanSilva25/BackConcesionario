@@ -20,8 +20,10 @@ router.register(r'vehiculo',views.VehiculoView, 'vehiculo')
 router.register(r'venta',views.VentaView, 'venta')
 router.register(r'detalleventa',views.DetalleVentaView, 'detalleventa')
 
+
 urlpatterns = [
     path('', include(router.urls)),
+    path('login/', views.login_view, name='login'),
     #path('api', include('modulos.urls')),
     #path('docs/', include_docs_urls(title='usuarios api')),
 ]

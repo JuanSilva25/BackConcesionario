@@ -5,7 +5,7 @@ from django.dispatch import receiver
 from django.contrib.auth.models import User
 from django.db.models import F,Q, Sum
 from decimal import Decimal
-
+from django.db import transaction
 
 
 class Roles(models.Model):
@@ -113,7 +113,7 @@ class OrdenTrabajo(models.Model):
 
 class InventarioVehiculo(models.Model):
     invVehiculoId = models.AutoField(primary_key=True)
-    vehiculo = models.ForeignKey('Vehiculo', on_delete=models.CASCADE,null=True)
+    vehiculo = models.ForeignKey('Vehiculo', on_delete=models.CASCADE, null=True)
     cantidad = models.PositiveIntegerField(default=0)
 
     def __str__(self):
@@ -122,6 +122,28 @@ class InventarioVehiculo(models.Model):
     class Meta:
         db_table = 'InventarioVehiculo'
         verbose_name_plural = 'InventarioVehiculo'
+
+    def actualizar_inventario(self, cantidad_vendida):
+        """
+        Actualiza la cantidad de vehículos en el inventario después de una venta.
+        """
+        if cantidad_vendida > 0:
+            try:
+                with transaction.atomic():
+                    inventario_existente = InventarioVehiculo.objects.select_for_update().filter(vehiculo=self.vehiculo).first()
+
+                    if inventario_existente:
+                        # Si existe, actualiza la cantidad existente
+                        inventario_existente.cantidad += cantidad_vendida
+                        inventario_existente.save()
+                        print(f"Inventario actualizado - Vehículo: {self.vehiculo}, Nueva cantidad: {inventario_existente.cantidad}")
+                    else:
+                        # Si no existe, crea uno nuevo
+                        InventarioVehiculo.objects.create(vehiculo=self.vehiculo, cantidad=cantidad_vendida)
+                        print(f"Inventario creado - Vehículo: {self.vehiculo}, Cantidad: {cantidad_vendida}")
+
+            except Exception as e:
+                print(f"Error al actualizar inventario: {e}")
 
 class Vehiculo(models.Model):
     vehiculoId= models.AutoField(primary_key =True)
@@ -139,19 +161,6 @@ class Vehiculo(models.Model):
         db_table ='Vehiculo'
         verbose_name_plural = 'Vehiculo'
 
-@receiver(post_save, sender=Vehiculo)
-def agregar_vehiculo_a_inventario(sender, instance, created, **kwargs):
-    if created:
-        InventarioVehiculo.objects.create(vehiculo=instance)
-  
-@receiver(post_delete, sender=Vehiculo)
-def eliminar_vehiculo_de_inventario(sender, instance, **kwargs):
-    try:
-        inventario_vehiculo = InventarioVehiculo.objects.get(vehiculo=instance)
-        inventario_vehiculo.delete()
-    except InventarioVehiculo.DoesNotExist:
-        pass
-
 class Repuesto(models.Model):
     repuestoId = models.AutoField(primary_key=True)
     nombreRepuesto = models.ForeignKey(CategoriaRepuesto, on_delete=models.SET_NULL, null=True, blank=True)
@@ -167,18 +176,6 @@ class Repuesto(models.Model):
         db_table = 'Repuesto'
         verbose_name_plural = 'Repuesto'
 
-@receiver(post_save, sender=Repuesto)
-def agregar_repuesto_a_inventario(sender, instance, created, **kwargs):
-    if created:
-        InventarioRepuesto.objects.create(repuesto=instance)
-  
-@receiver(post_delete, sender=Repuesto)
-def eliminar_repuesto_de_inventario(sender, instance, **kwargs):
-    try:
-        inventario_repuesto = InventarioRepuesto.objects.get(repuesto=instance)
-        inventario_repuesto.delete()
-    except InventarioRepuesto.DoesNotExist:
-        pass
 
 class InventarioRepuesto(models.Model):
     invRepuestolId = models.AutoField(primary_key=True)
@@ -192,18 +189,13 @@ class InventarioRepuesto(models.Model):
         db_table = 'InventarioRepuesto'
         verbose_name_plural = 'InventarioRepuesto'
 
-@receiver(post_save, sender=Repuesto)
-def agregar_repuesto_a_inventario(sender, instance, created, **kwargs):
-    if created:
-        InventarioRepuesto.objects.create(repuesto=instance)
-
-@receiver(post_delete, sender=Repuesto)
-def eliminar_repuesto_de_inventario(sender, instance, **kwargs):
-    try:
-        inventario_repuesto = InventarioRepuesto.objects.get(repuesto=instance)
-        inventario_repuesto.delete()
-    except InventarioRepuesto.DoesNotExist:
-        pass
+    def actualizar_inventario(self, cantidad_vendida):
+        """
+        Actualiza la cantidad de repuestos en el inventario después de una venta.
+        """
+        if cantidad_vendida > 0:
+            self.cantidad -= cantidad_vendida
+            self.save()
 
 class Cotizacion(models.Model):
     cotizacionId = models.AutoField(primary_key =True)
@@ -264,6 +256,22 @@ class Venta(models.Model):
     class Meta:
         db_table = 'Venta'
 
+    def save(self, *args, **kwargs):
+        # Guardar el objeto antes de calcular los totales
+        super().save(*args, **kwargs)
+
+        # Actualizar el inventario de vehículos
+        detalles_vehiculo = DetalleVenta.objects.filter(venta=self, vehiculo__isnull=False)
+        for detalle_vehiculo in detalles_vehiculo:
+            inventario_vehiculo = InventarioVehiculo.objects.get(vehiculo=detalle_vehiculo.vehiculo)
+            inventario_vehiculo.actualizar_inventario(detalle_vehiculo.cantidad_vehiculo)
+
+        # Actualizar el inventario de repuestos
+        detalles_repuesto = DetalleVenta.objects.filter(venta=self, repuesto__isnull=False)
+        for detalle_repuesto in detalles_repuesto:
+            inventario_repuesto = InventarioRepuesto.objects.get(repuesto=detalle_repuesto.repuesto)
+            inventario_repuesto.actualizar_inventario(detalle_repuesto.cantidad_repuesto)
+
 
 class DetalleVenta(models.Model):
     detalleVentaId = models.AutoField(primary_key=True)
@@ -303,3 +311,13 @@ class DetalleVenta(models.Model):
         # Actualizar el precioTotal de la venta
         self.venta.precioTotal = precio_total_vehiculo + precio_total_repuesto
         self.venta.save()
+
+        # Actualizar el inventario de vehículos
+        if self.vehiculo:
+            inventario_vehiculo = InventarioVehiculo.objects.get(vehiculo=self.vehiculo)
+            inventario_vehiculo.actualizar_inventario(self.cantidad_vehiculo)
+
+        # Actualizar el inventario de repuestos
+        if self.repuesto:
+            inventario_repuesto = InventarioRepuesto.objects.get(repuesto=self.repuesto)
+            inventario_repuesto.actualizar_inventario(self.cantidad_repuesto)

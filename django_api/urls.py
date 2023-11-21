@@ -17,6 +17,7 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path,include
 
+
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('usuario/', include('modulos.urls')),
@@ -31,5 +32,8 @@ urlpatterns = [
     path('sucursal/',include('modulos.urls')),
     path('vehiculo/',include('modulos.urls')),
     path('venta/',include('modulos.urls')),
-    path('detalleventa/',include('modulos.urls'))
+    path('detalleventa/',include('modulos.urls')),
+    path('login/', include('modulos.urls')),
+    path('api/', include('modulos.urls')), 
+    path('', include('modulos.urls')),
 ]

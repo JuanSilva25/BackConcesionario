@@ -1,6 +1,9 @@
 from rest_framework import serializers
 from .models import Usuario, Roles,PermisoRutas,Rutas, CategoriaRepuesto,Repuesto,OrdenTrabajo,InventarioVehiculo,InventarioRepuesto,Cotizacion
 from .models import Sucursal,Vehiculo,Venta,DetalleVenta
+from rest_framework import viewsets
+from rest_framework.response import Response
+from .models import PermisoRutas, Rutas
 
 class UsuarioSerializer(serializers.ModelSerializer):
     rol_name = serializers.SerializerMethodField()
@@ -13,6 +16,8 @@ class UsuarioSerializer(serializers.ModelSerializer):
         if instance.rol:
             return instance.rol.rol
         return "Sin Rol"
+    
+    
 
 
 
@@ -30,13 +35,19 @@ class PermisoRutasSerializer(serializers.ModelSerializer):
 
     def get_ruta_names(self, instance):
         return [ruta.nombreRuta for ruta in instance.rutas.all()] if instance.rutas.exists() else ["Sin Ruta"]
-
+    def retrieve(self, request, rol_id=None):
+        permiso_rutas = PermisoRutas.objects.get(rolId=rol_id)
+        rutas = permiso_rutas.rutas.all()
+        serializer = RutasSerializer(rutas, many=True)
+        return Response({
+            'permiso_rutas': permiso_rutas.idPermiso,
+            'rutas': serializer.data
+        })
         
 class RutasSerializer(serializers.ModelSerializer):
     class Meta:
         model = Rutas
-        fields = '__all__'
-        
+        fields = '__all__'    
         
 
 class CategoriaRepuestoSerializer(serializers.ModelSerializer):
@@ -92,3 +103,6 @@ class DetalleVentaSerializer(serializers.ModelSerializer):
       class Meta:
         model= DetalleVenta
         fields = '__all__'
+        
+        
+  

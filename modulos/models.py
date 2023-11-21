@@ -263,18 +263,21 @@ class DetalleVenta(models.Model):
     total_vehiculo = models.DecimalField(max_digits=10, decimal_places=2, default=0.0, editable=False)
     total_repuesto = models.DecimalField(max_digits=10, decimal_places=2, default=0.0, editable=False)
 
-    def actualizar_precio_total(self):
-        # Calcular el total para vehículo y repuesto
+    def save(self, *args, **kwargs):
+        # Calcular los totales antes de guardar el objeto DetalleVenta
         self.total_vehiculo = self.cantidad_vehiculo * self.vehiculo.precio if self.vehiculo else 0
         self.total_repuesto = self.cantidad_repuesto * self.repuesto.precio if self.repuesto else 0
 
-        # Calcular el precioTotal de la venta sumando los totales de detalles asociados
-        precio_total_vehiculo = DetalleVenta.objects.filter(venta=self.venta, vehiculo__isnull=False).aggregate(Sum('total_vehiculo'))['total_vehiculo__sum'] or 0
-        precio_total_repuesto = DetalleVenta.objects.filter(venta=self.venta, repuesto__isnull=False).aggregate(Sum('total_repuesto'))['total_repuesto__sum'] or 0
+        super().save(*args, **kwargs)  # Guardar el objeto DetalleVenta
 
-        self.venta.precioTotal = precio_total_vehiculo + precio_total_repuesto
-        self.venta.save()
+        # Luego actualizar el precio total
+        self.actualizar_precio_total()
+   
+    def actualizar_precio_total(self):
+        if self.venta is not None:
+            # Calcular el precioTotal de la venta sumando los totales de detalles asociados
+            precio_total_vehiculo = DetalleVenta.objects.filter(venta=self.venta, vehiculo__isnull=False).aggregate(Sum('total_vehiculo'))['total_vehiculo__sum'] or 0
+            precio_total_repuesto = DetalleVenta.objects.filter(venta=self.venta, repuesto__isnull=False).aggregate(Sum('total_repuesto'))['total_repuesto__sum'] or 0
 
-    def save(self, *args, **kwargs):
-        super().save(*args, **kwargs)  # Guardar el detalle primero
-        self.actualizar_precio_total()  # Luego actualizar el precio total
+            self.venta.precioTotal = precio_total_vehiculo + precio_total_repuesto
+            self.venta.save()  # Guardar el objeto Venta después de actualizar precioTotal

@@ -2,11 +2,9 @@ from rest_framework import viewsets
 from .serializer import UsuarioSerializer,RolesSerializer,PermisoRutasSerializer,RutasSerializer,CategoriaRepuestoSerializer,RepuestoSerializer,OrdenTrabajoSerializer,InventarioVehiculoSerializer
 from .serializer import InventarioRepuestoSerializer,CotizacionSerializer,VehiculoSerializer,SucursalSerializer,VentaSerializer,DetalleVentaSerializer
 from .models import Usuario,Roles,PermisoRutas,Rutas,CategoriaRepuesto,Repuesto,OrdenTrabajo,InventarioVehiculo,InventarioRepuesto,Cotizacion,Sucursal,Vehiculo,Venta,DetalleVenta
-from django.contrib.auth import authenticate, login
-from django.http import HttpResponse
-from django.views.decorators.csrf import csrf_exempt
 
 
+# Create your views here.
 class UsuarioView(viewsets.ModelViewSet):
     serializer_class = UsuarioSerializer
     queryset = Usuario.objects.all()
@@ -58,31 +56,41 @@ class SucursalView(viewsets.ModelViewSet):
 class VehiculoView(viewsets.ModelViewSet):
      serializer_class = VehiculoSerializer
      queryset = Vehiculo.objects.all()
-
-
+     
+     
 class VentaView(viewsets.ModelViewSet):
-       serializer_class = VentaSerializer
-       queryset = Venta.objects.all()
-
-
-
-
+      serializer_class = VentaSerializer
+      queryset = Venta.objects.all()
+      
      
 class DetalleVentaView(viewsets.ModelViewSet):
       serializer_class = DetalleVentaSerializer
       queryset = DetalleVenta.objects.all()
-      
-from django.contrib.auth import authenticate
-from rest_framework.authtoken.models import Token
-from rest_framework.response import Response
-from rest_framework.views import APIView
 
-class LoginView(APIView):
-    def post(self, request):
-        username = request.data.get('username')
-        password = request.data.get('password')
-        user = authenticate(username=username, password=password)
-        if user is None:
-            return Response({'error': 'Invalid credentials'})
-        token, _ = Token.objects.get_or_create(user=user)
-        return Response({'token': token.key})
+
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from .models import Usuario
+from django.db import IntegrityError
+
+@csrf_exempt
+def login_view(request):
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+
+        try:
+            # Intenta obtener al usuario a través del nombre de usuario
+            user = Usuario.objects.get(username=username)
+        except Usuario.DoesNotExist:
+            return JsonResponse({'message': 'Credenciales inválidas'}, status=401)
+
+        # Verifica la contraseña
+        if user.password == password:
+            # Iniciar sesión
+            # Aquí puedes realizar acciones adicionales antes de iniciar sesión si es necesario
+            return JsonResponse({'message': 'Login exitoso'})
+        else:
+            return JsonResponse({'message': 'Credenciales inválidas'}, status=401)
+
+    return JsonResponse({'message': 'Método no permitido'}, status=405)

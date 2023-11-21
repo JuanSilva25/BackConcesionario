@@ -2,6 +2,7 @@ from django.urls import path, include
 from rest_framework.documentation import include_docs_urls
 from rest_framework import routers
 from modulos import views
+from .views import lista_inventario_vehiculos
 
 #api versioning
 router = routers.DefaultRouter()

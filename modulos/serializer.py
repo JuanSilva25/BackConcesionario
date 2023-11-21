@@ -14,8 +14,6 @@ class UsuarioSerializer(serializers.ModelSerializer):
             return instance.rol.rol
         return "Sin Rol"
 
-
-
 class RolesSerializer(serializers.ModelSerializer):
     class Meta:
         model = Roles
@@ -44,26 +42,35 @@ class CategoriaRepuestoSerializer(serializers.ModelSerializer):
          model = CategoriaRepuesto
          fields = '__all__'
 
-class RepuestoSerializer(serializers.ModelSerializer):
-      class Meta:
-         model = Repuesto
-         fields = '__all__'
-         
-
 class OrdenTrabajoSerializer(serializers.ModelSerializer):
       class Meta:
         model = OrdenTrabajo
         fields ='__all__'
 
+class VehiculoSerializer(serializers.ModelSerializer):
+      class Meta:
+        model= Vehiculo
+        fields = '__all__'
+     
+
 class InventarioVehiculoSerializer(serializers.ModelSerializer):
+      vehiculo = VehiculoSerializer()
       class Meta:
         model = InventarioVehiculo
         fields ='__all__'
 
+class RepuestoSerializer(serializers.ModelSerializer):
+      class Meta:
+         model = Repuesto
+         fields = '__all__'
+
 class InventarioRepuestoSerializer(serializers.ModelSerializer):
+      repuesto = RepuestoSerializer()
       class Meta:
         model = InventarioRepuesto
         fields ='__all__'        
+
+
 
 class CotizacionSerializer(serializers.ModelSerializer):
       class Meta:
@@ -76,11 +83,7 @@ class SucursalSerializer(serializers.ModelSerializer):
         model= Sucursal
         fields = '__all__'
       
-class VehiculoSerializer(serializers.ModelSerializer):
-      class Meta:
-        model= Vehiculo
-        fields = '__all__'
-     
+
 class VentaSerializer(serializers.ModelSerializer):
      
      class Meta:

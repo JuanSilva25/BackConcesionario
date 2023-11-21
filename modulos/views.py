@@ -2,7 +2,8 @@ from rest_framework import viewsets
 from .serializer import UsuarioSerializer,RolesSerializer,PermisoRutasSerializer,RutasSerializer,CategoriaRepuestoSerializer,RepuestoSerializer,OrdenTrabajoSerializer,InventarioVehiculoSerializer
 from .serializer import InventarioRepuestoSerializer,CotizacionSerializer,VehiculoSerializer,SucursalSerializer,VentaSerializer,DetalleVentaSerializer
 from .models import Usuario,Roles,PermisoRutas,Rutas,CategoriaRepuesto,Repuesto,OrdenTrabajo,InventarioVehiculo,InventarioRepuesto,Cotizacion,Sucursal,Vehiculo,Venta,DetalleVenta
-
+from rest_framework.decorators import api_view
+from rest_framework.response import Response
 
 # Create your views here.
 class UsuarioView(viewsets.ModelViewSet):
@@ -57,6 +58,11 @@ class VehiculoView(viewsets.ModelViewSet):
      serializer_class = VehiculoSerializer
      queryset = Vehiculo.objects.all()
      
+@api_view(['GET'])
+def lista_inventario_vehiculos(request):
+    inventario_vehiculos = InventarioVehiculo.objects.all()
+    serializer = InventarioVehiculoSerializer(inventario_vehiculos, many=True)
+    return Response(serializer.data)
      
 class VentaView(viewsets.ModelViewSet):
       serializer_class = VentaSerializer
@@ -68,8 +74,9 @@ class DetalleVentaView(viewsets.ModelViewSet):
       queryset = DetalleVenta.objects.all()
 
 from django.contrib.auth import authenticate, login
-from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
+from django.http import JsonResponse
+from .models import Usuario
 
 @csrf_exempt
 def login_view(request):
@@ -77,7 +84,7 @@ def login_view(request):
         username = request.POST.get('username')
         password = request.POST.get('password')
 
-        # Autenticar al usuario
+        # Autenticar al usuario utilizando el nuevo backend
         user = authenticate(request, username=username, password=password)
 
         if user is not None:

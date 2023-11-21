@@ -92,6 +92,8 @@ class VentaSerializer(serializers.ModelSerializer):
 
 
 class DetalleVentaSerializer(serializers.ModelSerializer):
+      vehiculo = VehiculoSerializer()
+      repuesto = RepuestoSerializer()
       class Meta:
         model= DetalleVenta
         fields = '__all__'

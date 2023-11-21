@@ -80,7 +80,7 @@ WSGI_APPLICATION = 'django_api.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql_psycopg2',
-        'NAME': 'concesionario2',
+        'NAME': 'concesionario3',
         'USER' : 'postgres',
         'PASSWORD': 'juan12',
         'HOST': 'localhost',
@@ -142,8 +142,3 @@ REST_FRAMEWORK = {
     ],
 }
 
-SESSION_ENGINE = 'django.contrib.sessions.backends.db'
-SESSION_SAVE_EVERY_REQUEST = True
-AUTHENTICATION_BACKENDS = [
-    'django.contrib.auth.backends.ModelBackend',
-]

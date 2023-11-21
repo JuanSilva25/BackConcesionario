@@ -210,6 +210,23 @@ class InventarioRepuesto(models.Model):
         db_table = 'InventarioRepuesto'
         verbose_name_plural = 'InventarioRepuesto'
 
+    def actualizar_inventario(self, cantidad_vendida):
+        """
+        Actualiza la cantidad de repuestos en el inventario después de una venta.
+        """
+        if cantidad_vendida > 0:
+            try:
+                # Obtén o crea el inventario del repuesto
+                inventario_existente, creado = InventarioRepuesto.objects.get_or_create(repuesto=self.repuesto)
+
+                # Resta la cantidad vendida
+                inventario_existente.cantidad -= cantidad_vendida
+                inventario_existente.save()
+                print(f"Inventario actualizado - Repuesto: {self.repuesto}, Nueva cantidad: {inventario_existente.cantidad}")
+
+            except Exception as e:
+                print(f"Error al actualizar inventario: {e}")
+
 class Cotizacion(models.Model):
     cotizacionId = models.AutoField(primary_key =True)
     vehiculo = models.ForeignKey('Vehiculo', on_delete=models.CASCADE, null=True)

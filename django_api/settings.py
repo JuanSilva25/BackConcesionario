@@ -142,7 +142,8 @@ REST_FRAMEWORK = {
     ],
 }
 
-# settings.py
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+SESSION_SAVE_EVERY_REQUEST = True
 AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
 ]

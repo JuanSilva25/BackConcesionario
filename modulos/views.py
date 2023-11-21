@@ -73,10 +73,11 @@ class DetalleVentaView(viewsets.ModelViewSet):
       serializer_class = DetalleVentaSerializer
       queryset = DetalleVenta.objects.all()
 
-from django.contrib.auth import authenticate, login
-from django.views.decorators.csrf import csrf_exempt
 from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
 from .models import Usuario
+from django.db import IntegrityError
+from django.contrib.sessions.models import Session
 
 @csrf_exempt
 def login_view(request):
@@ -84,16 +85,35 @@ def login_view(request):
         username = request.POST.get('username')
         password = request.POST.get('password')
 
-        # Autenticar al usuario utilizando el nuevo backend
-        user = authenticate(request, username=username, password=password)
+        try:
+            user = Usuario.objects.get(username=username)
+        except Usuario.DoesNotExist:
+            return JsonResponse({'message': 'Credenciales inválidas'}, status=401)
 
-        if user is not None:
-            # Iniciar sesión
-            login(request, user)
+        if user.password == password:
+            # Almacena el ID de usuario en la sesión
+            request.session['user_id'] = user.idUsuario
 
-            # Puedes devolver cualquier información adicional que desees en el JSON de respuesta
             return JsonResponse({'message': 'Login exitoso'})
         else:
             return JsonResponse({'message': 'Credenciales inválidas'}, status=401)
 
     return JsonResponse({'message': 'Método no permitido'}, status=405)
+
+from django.shortcuts import render, redirect
+from .models import Usuario
+from django.contrib.auth.decorators import login_required
+
+@login_required(login_url='login')
+def mi_vista_protegida(request):
+    user_id = request.session.get('user_id')
+    if user_id:
+        # El usuario está autenticado, puedes obtener su objeto de usuario
+        user = Usuario.objects.get(idUsuario=user_id)
+        print(user.username)
+        print(user.nombre)
+        # ...
+        return render(request, 'mi_template.html', {'usuario': user})
+    else:
+        # El usuario no está autenticado, puedes redirigirlo a la página de inicio de sesión
+        return redirect('login')

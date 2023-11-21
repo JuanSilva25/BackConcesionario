@@ -157,10 +157,6 @@ class InventarioVehiculo(models.Model):
         verbose_name_plural = 'InventarioVehiculo'
 
     def to_dict(self):
-        """
-        Convierte el objeto InventarioVehiculo a un diccionario para su representación en JSON,
-        incluyendo los atributos del vehículo asociado.
-        """
         vehiculo_data = self.vehiculo.to_dict() if self.vehiculo else None
 
         return {
@@ -168,7 +164,24 @@ class InventarioVehiculo(models.Model):
             'cantidad': self.cantidad,
             'vehiculo': vehiculo_data,
         }
-    
+
+    def actualizar_inventario(self, cantidad_vendida):
+        """
+        Actualiza la cantidad de vehículos en el inventario después de una venta.
+        """
+        if cantidad_vendida > 0:
+            try:
+                # Obtén o crea el inventario del vehículo
+                inventario_existente, creado = InventarioVehiculo.objects.get_or_create(vehiculo=self.vehiculo)
+
+                # Resta la cantidad vendida
+                inventario_existente.cantidad -= cantidad_vendida
+                inventario_existente.save()
+                print(f"Inventario actualizado - Vehículo: {self.vehiculo}, Nueva cantidad: {inventario_existente.cantidad}")
+
+            except Exception as e:
+                print(f"Error al actualizar inventario: {e}")
+
 class Repuesto(models.Model):
     repuestoId = models.AutoField(primary_key=True)
     nombreRepuesto = models.ForeignKey(CategoriaRepuesto, on_delete=models.SET_NULL, null=True, blank=True)
@@ -256,6 +269,8 @@ class Venta(models.Model):
     class Meta:
         db_table = 'Venta'
 
+    _updating_precio_total = False
+
     def save(self, *args, **kwargs):
         # Guardar el objeto antes de calcular los totales
         super().save(*args, **kwargs)
@@ -266,12 +281,23 @@ class Venta(models.Model):
             inventario_vehiculo = InventarioVehiculo.objects.get(vehiculo=detalle_vehiculo.vehiculo)
             inventario_vehiculo.actualizar_inventario(detalle_vehiculo.cantidad_vehiculo)
 
-        # Actualizar el inventario de repuestos
-        detalles_repuesto = DetalleVenta.objects.filter(venta=self, repuesto__isnull=False)
-        for detalle_repuesto in detalles_repuesto:
-            inventario_repuesto = InventarioRepuesto.objects.get(repuesto=detalle_repuesto.repuesto)
-            inventario_repuesto.actualizar_inventario(detalle_repuesto.cantidad_repuesto)
+        # Actualizar el precioTotal de la venta después de guardar los detalles
+        self.actualizar_precio_total_venta()
 
+    def actualizar_precio_total_venta(self):
+        # Evitar recursión infinita
+        if Venta._updating_precio_total:
+            return
+
+        # Calcular el precioTotal de la venta solo para los detalles de vehículos asociados a esta venta
+        precio_total_vehiculo = DetalleVenta.objects.filter(venta=self, vehiculo__isnull=False).aggregate(Sum('total_vehiculo'))['total_vehiculo__sum'] or Decimal('0.00')
+        precio_total_repuesto = DetalleVenta.objects.filter(venta=self, repuesto__isnull=False).aggregate(Sum('total_repuesto'))['total_repuesto__sum'] or Decimal('0.00')
+
+        # Actualizar el precioTotal de la venta
+        Venta._updating_precio_total = True
+        self.precioTotal = precio_total_vehiculo + precio_total_repuesto
+        self.save(update_fields=['precioTotal'])  # Guardar solo el campo precioTotal
+        Venta._updating_precio_total = False
 
 class DetalleVenta(models.Model):
     detalleVentaId = models.AutoField(primary_key=True)

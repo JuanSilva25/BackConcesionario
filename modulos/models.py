@@ -4,6 +4,8 @@ from django.db.models.signals import post_save, post_delete, pre_save
 from django.dispatch import receiver
 from django.contrib.auth.models import User
 from django.db.models import Sum
+from django.db import transaction
+
 class Roles(models.Model):
     id = models.AutoField(primary_key=True)
     rol = models.CharField(max_length=50)
@@ -113,9 +115,11 @@ class OrdenTrabajo(models.Model):
         verbose_name_plural = 'OrdenTrabajo'
 
 
+
 class InventarioVehiculo(models.Model):
     invVehiculoId = models.AutoField(primary_key=True)
-    vehiculo = models.ForeignKey('Vehiculo', on_delete=models.CASCADE,null=True)
+    vehiculo = models.ForeignKey('Vehiculo', on_delete=models.CASCADE, null=True)
+    cantidad = models.PositiveIntegerField(default=0)
 
     def __str__(self):
         return f"InventarioVehiculo {self.invVehiculoId} - Vehículo: {self.vehiculo}"
@@ -123,6 +127,28 @@ class InventarioVehiculo(models.Model):
     class Meta:
         db_table = 'InventarioVehiculo'
         verbose_name_plural = 'InventarioVehiculo'
+
+    def actualizar_inventario(self, cantidad_vendida):
+        """
+        Actualiza la cantidad de vehículos en el inventario después de una venta.
+        """
+        if cantidad_vendida > 0:
+            try:
+                with transaction.atomic():
+                    inventario_existente = InventarioVehiculo.objects.select_for_update().filter(vehiculo=self.vehiculo).first()
+
+                    if inventario_existente:
+                        # Si existe, actualiza la cantidad existente
+                        inventario_existente.cantidad += cantidad_vendida
+                        inventario_existente.save()
+                        print(f"Inventario actualizado - Vehículo: {self.vehiculo}, Nueva cantidad: {inventario_existente.cantidad}")
+                    else:
+                        # Si no existe, crea uno nuevo
+                        InventarioVehiculo.objects.create(vehiculo=self.vehiculo, cantidad=cantidad_vendida)
+                        print(f"Inventario creado - Vehículo: {self.vehiculo}, Cantidad: {cantidad_vendida}")
+
+            except Exception as e:
+                print(f"Error al actualizar inventario: {e}")
 
 class Vehiculo(models.Model):
     vehiculoId= models.AutoField(primary_key =True)
@@ -157,7 +183,7 @@ def eliminar_vehiculo_de_inventario(sender, instance, **kwargs):
 class InventarioRepuesto(models.Model):
     invRepuestolId = models.AutoField(primary_key=True)
     repuesto = models.ForeignKey('Repuesto', on_delete=models.CASCADE, null=True)
-  
+    cantidad = models.PositiveIntegerField(default=0)
 
     def __str__(self):
         return f'InventarioRepuesto {self.invRepuestolId} - Repuesto: {self.repuesto}'
@@ -166,6 +192,13 @@ class InventarioRepuesto(models.Model):
         db_table = 'InventarioRepuesto'
         verbose_name_plural = 'InventarioRepuesto'
 
+    def actualizar_inventario(self, cantidad_vendida):
+        """
+        Actualiza la cantidad de repuestos en el inventario después de una venta.
+        """
+        if cantidad_vendida > 0:
+            self.cantidad -= cantidad_vendida
+            self.save()
 class Repuesto(models.Model):
     repuestoId = models.AutoField(primary_key=True)
     nombreRepuesto = models.ForeignKey(CategoriaRepuesto, on_delete=models.SET_NULL, null=True, blank=True)

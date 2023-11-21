@@ -1,9 +1,12 @@
-
 from django.urls import path, include
+from rest_framework.documentation import include_docs_urls
 from rest_framework import routers
 from modulos import views
+from django.urls import path
+from .views import login
+from django.urls import path
+from .views import LoginView
 #api versioning
-
 router = routers.DefaultRouter()
 router.register(r'usuario', views.UsuarioView, 'usuario')
 router.register(r'roles', views.RolesView, 'roles')
@@ -20,16 +23,13 @@ router.register(r'vehiculo',views.VehiculoView, 'vehiculo')
 router.register(r'venta',views.VentaView, 'venta')
 router.register(r'detalleventa',views.DetalleVentaView, 'detalleventa')
 
+
+
+
 urlpatterns = [
-    path('login/', views.login_view, name='login'),
     path('', include(router.urls)),
+    path('login/', LoginView.as_view()),
     #path('api', include('modulos.urls')),
     #path('docs/', include_docs_urls(title='usuarios api')),
-  
 ]
-
-
-
-     
-
 

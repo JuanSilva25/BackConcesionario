@@ -71,23 +71,18 @@ class VentaView(viewsets.ModelViewSet):
 class DetalleVentaView(viewsets.ModelViewSet):
       serializer_class = DetalleVentaSerializer
       queryset = DetalleVenta.objects.all()
+      
+from django.contrib.auth import authenticate
+from rest_framework.authtoken.models import Token
+from rest_framework.response import Response
+from rest_framework.views import APIView
 
-
-@csrf_exempt
-def login_view(request):
-    print("La vista de inicio de sesión se ha llamado")  # Esta línea se imprimirá cada vez que se llame a la vista
-    if request.method == 'POST':
-        username = request.POST['username']
-        password = request.POST['password']
-        print(f"Intentando iniciar sesión con el usuario {username}")  # Esta línea se imprimirá cuando se haga una solicitud POST
-        user = authenticate(request, username=username, password=password)
-        if user is not None:
-            login(request, user)
-            print("Inicio de sesión exitoso")  # Esta línea se imprimirá cuando el inicio de sesión sea exitoso
-            return HttpResponse("Inicio de sesión exitoso")
-        else:
-            print("Credenciales inválidas")  # Esta línea se imprimirá cuando las credenciales sean inválidas
-            return HttpResponse("Credenciales inválidas")
-    else:
-        print("Método no permitido")  # Esta línea se imprimirá cuando el método de la solicitud no sea POST
-        return HttpResponse("Método no permitido")
+class LoginView(APIView):
+    def post(self, request):
+        username = request.data.get('username')
+        password = request.data.get('password')
+        user = authenticate(username=username, password=password)
+        if user is None:
+            return Response({'error': 'Invalid credentials'})
+        token, _ = Token.objects.get_or_create(user=user)
+        return Response({'token': token.key})

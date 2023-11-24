@@ -128,27 +128,28 @@ class InventarioVehiculo(models.Model):
         db_table = 'InventarioVehiculo'
         verbose_name_plural = 'InventarioVehiculo'
 
-    def actualizar_inventario(self, cantidad_vendida):
-        """
-        Actualiza la cantidad de vehículos en el inventario después de una venta.
-        """
-        if cantidad_vendida > 0:
-            try:
-                with transaction.atomic():
-                    inventario_existente = InventarioVehiculo.objects.select_for_update().filter(vehiculo=self.vehiculo).first()
+def actualizar_inventario(self, cantidad_vendida):
+    """
+    Actualiza la cantidad de vehículos en el inventario después de una venta.
+    """
+    if cantidad_vendida > 0:
+        try:
+            with transaction.atomic():
+                inventario_existente = InventarioVehiculo.objects.select_for_update().filter(vehiculo=self.vehiculo).first()
 
-                    if inventario_existente:
-                        # Si existe, actualiza la cantidad existente
-                        inventario_existente.cantidad += cantidad_vendida
-                        inventario_existente.save()
-                        print(f"Inventario actualizado - Vehículo: {self.vehiculo}, Nueva cantidad: {inventario_existente.cantidad}")
-                    else:
-                        # Si no existe, crea uno nuevo
-                        InventarioVehiculo.objects.create(vehiculo=self.vehiculo, cantidad=cantidad_vendida)
-                        print(f"Inventario creado - Vehículo: {self.vehiculo}, Cantidad: {cantidad_vendida}")
+                if inventario_existente:
+                    # Si existe, actualiza la cantidad existente
+                    inventario_existente.cantidad += cantidad_vendida
+                    inventario_existente.save()
+                    print(f"Inventario actualizado - Vehículo: {self.vehiculo}, Nueva cantidad: {inventario_existente.cantidad}")
+                else:
+                    # Si no existe, crea uno nuevo
+                    InventarioVehiculo.objects.create(vehiculo=self.vehiculo, cantidad=cantidad_vendida)
+                    print(f"Inventario creado - Vehículo: {self.vehiculo}, Cantidad: {cantidad_vendida}")
 
-            except Exception as e:
-                print(f"Error al actualizar inventario: {e}")
+        except Exception as e:
+            print(f"Error al actualizar inventario: {e}")
+
 
 class Vehiculo(models.Model):
     vehiculoId= models.AutoField(primary_key =True)
@@ -314,3 +315,7 @@ class DetalleVenta(models.Model):
 
             self.venta.precioTotal = precio_total_vehiculo + precio_total_repuesto
             self.venta.save()  # Guardar el objeto Venta después de actualizar precioTotal
+            
+            
+            
+            

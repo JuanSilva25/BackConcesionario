@@ -44,6 +44,12 @@ class PermisoRutasSerializer(serializers.ModelSerializer):
             'rutas': serializer.data
         })
         
+        
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        representation['rolId'] = RolesSerializer(instance.rolId).data
+        return representation
+        
 class RutasSerializer(serializers.ModelSerializer):
     class Meta:
         model = Rutas
@@ -60,27 +66,53 @@ class RepuestoSerializer(serializers.ModelSerializer):
          model = Repuesto
          fields = '__all__'
          
-
+      def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        representation['nombreRepuesto'] = CategoriaRepuestoSerializer(instance.nombreRepuesto).data
+        return representation
+         
 class OrdenTrabajoSerializer(serializers.ModelSerializer):
-      class Meta:
+    #jefeTaller = UsuarioSerializer(read_only=True)
+
+    class Meta:
         model = OrdenTrabajo
-        fields ='__all__'
+        fields = '__all__'
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        representation['jefeTaller'] = UsuarioSerializer(instance.jefeTaller).data
+        return representation
 
 class InventarioVehiculoSerializer(serializers.ModelSerializer):
       class Meta:
         model = InventarioVehiculo
         fields ='__all__'
-
+        
+      def to_representation(sel,instance):
+          representation = super(). to_representation(instance)
+          representation ['vehiculo'] = VehiculoSerializer(instance.vehiculo).data
+          return representation
+        
 class InventarioRepuestoSerializer(serializers.ModelSerializer):
       class Meta:
         model = InventarioRepuesto
         fields ='__all__'        
+        
+      def to_representation(sel,instance):
+          representation = super(). to_representation(instance)
+          representation ['repuesto'] = RepuestoSerializer(instance.repuesto).data
+          return representation  
 
 class CotizacionSerializer(serializers.ModelSerializer):
       class Meta:
         model = Cotizacion
         fields ='__all__'        
 
+      def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        representation['vehiculo'] = VehiculoSerializer(instance.vehiculo).data
+        representation['usuario'] = UsuarioSerializer(instance.usuario).data
+        return representation
 
 class SucursalSerializer(serializers.ModelSerializer):
       class Meta:
@@ -97,12 +129,22 @@ class VentaSerializer(serializers.ModelSerializer):
      class Meta:
         model= Venta
         fields = '__all__'
-
+     def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        representation['vendedor_id'] = UsuarioSerializer(instance.vendedor_id).data
+        representation['sucursal'] = SucursalSerializer(instance.sucursal).data
+        return representation
 
 class DetalleVentaSerializer(serializers.ModelSerializer):
-      class Meta:
-        model= DetalleVenta
+    #vehiculo = VehiculoSerializer(read_only=True)
+    #repuesto = RepuestoSerializer(read_only=True)
+
+    class Meta:
+        model = DetalleVenta
         fields = '__all__'
-        
-        
-  
+
+    def to_representation(self, instance):
+        representation = super().to_representation(instance)
+        representation['vehiculo'] = VehiculoSerializer(instance.vehiculo).data
+        representation['repuesto'] = RepuestoSerializer(instance.repuesto).data
+        return representation

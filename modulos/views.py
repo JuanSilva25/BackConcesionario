@@ -69,9 +69,42 @@ class VentaView(viewsets.ModelViewSet):
       queryset = Venta.objects.all()
       
      
-class DetalleVentaView(viewsets.ModelViewSet):
-      serializer_class = DetalleVentaSerializer
-      queryset = DetalleVenta.objects.all()
+
+class DetalleVentaViewSet(viewsets.ModelViewSet):
+    queryset = DetalleVenta.objects.all()
+
+    def get_serializer_class(self):
+        return DetalleVentaSerializer
+
+    def create(self, request):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        # Asigna el valor del campo precio_unitario_vehiculo
+        serializer.validated_data['precio_unitario_vehiculo'] = serializer.validated_data['vehiculo'].precio
+
+        detalle_venta = DetalleVenta.objects.create(**serializer.validated_data)
+
+        return Response(serializer.data)
+    
+class DetalleVentaViewSet(viewsets.ModelViewSet):
+    queryset = DetalleVenta.objects.all()
+
+    def get_serializer_class(self):
+        return DetalleVentaSerializer
+
+    def create(self, request):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+
+        # Asigna el valor del campo precio_unitario_vehiculo
+        serializer.validated_data['precio_unitario_vehiculo'] = serializer.validated_data['vehiculo'].precio
+
+        detalle_venta = DetalleVenta.objects.create(**serializer.validated_data)
+
+        return Response(serializer.data)
+
+
 
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
@@ -88,32 +121,50 @@ def login_view(request):
         try:
             user = Usuario.objects.get(username=username)
         except Usuario.DoesNotExist:
+            print(f"Usuario {username} no encontrado")
             return JsonResponse({'message': 'Credenciales inválidas'}, status=401)
 
         if user.password == password:
             # Almacena el ID de usuario en la sesión
             request.session['user_id'] = user.idUsuario
 
+            print(f"Login exitoso para el usuario {username}")
             return JsonResponse({'message': 'Login exitoso'})
         else:
+            print(f"Credenciales inválidas para el usuario {username}")
             return JsonResponse({'message': 'Credenciales inválidas'}, status=401)
 
     return JsonResponse({'message': 'Método no permitido'}, status=405)
 
-from django.shortcuts import render, redirect
-from .models import Usuario
 from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
 
-@login_required(login_url='login')
-def mi_vista_protegida(request):
-    user_id = request.session.get('user_id')
-    if user_id:
-        # El usuario está autenticado, puedes obtener su objeto de usuario
-        user = Usuario.objects.get(idUsuario=user_id)
-        print(user.username)
-        print(user.nombre)
-        # ...
-        return render(request, 'mi_template.html', {'usuario': user})
+@login_required
+def get_user_details(request):
+    if request.method == 'GET':
+        user_id = request.session.get('user_id')
+        
+        if user_id:
+            try:
+                user = Usuario.objects.get(idUsuario=user_id)
+                user_details = {
+                    'id': user.idUsuario,
+                    'username': user.username,
+                    'nombre': user.nombre,
+                    'apellido': user.apellido,
+                    'email': user.email,
+                    'telefono': user.telefono,
+                    'direccion': user.direccion,
+                    'rol': user.get_rol(),
+                }
+                print(f"Detalles del usuario: {user_details}")
+                return JsonResponse({'user': user_details})
+            except Usuario.DoesNotExist:
+                print("Usuario no encontrado")
+                return JsonResponse({'message': 'Usuario no encontrado'}, status=404)
+        else:
+            print("Usuario no autenticado")
+            return JsonResponse({'message': 'Usuario no autenticado'}, status=401)
     else:
-        # El usuario no está autenticado, puedes redirigirlo a la página de inicio de sesión
-        return redirect('login')
+        print("Método no permitido")
+        return JsonResponse({'message': 'Método no permitido'}, status=405)

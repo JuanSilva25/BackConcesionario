@@ -2,7 +2,7 @@ from django.urls import path, include
 from rest_framework.documentation import include_docs_urls
 from rest_framework import routers
 from modulos import views
-from .views import lista_inventario_vehiculos
+from .views import login_view, get_user_details
 
 #api versioning
 router = routers.DefaultRouter()
@@ -19,13 +19,11 @@ router.register(r'cotizacion',views.CotizacionView, 'cotizacion')
 router.register(r'sucursal',views.SucursalView, 'sucursal')
 router.register(r'vehiculo',views.VehiculoView, 'vehiculo')
 router.register(r'venta',views.VentaView, 'venta')
-router.register(r'detalleventa',views.DetalleVentaView, 'detalleventa')
+router.register(r'detalleventa',views.DetalleVentaViewSet, 'detalleventa')
 
 
 urlpatterns = [
     path('', include(router.urls)),
     path('login/', views.login_view, name='login'),
-    path('mi_vista_protegida/', views.mi_vista_protegida, name='mi_vista_protegida'),
-    #path('api', include('modulos.urls')),
-    #path('docs/', include_docs_urls(title='usuarios api')),
+    path('user-details/', views.get_user_details, name='user-details'),
 ]

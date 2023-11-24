@@ -31,5 +31,7 @@ urlpatterns = [
     path('sucursal/',include('modulos.urls')),
     path('vehiculo/',include('modulos.urls')),
     path('venta/',include('modulos.urls')),
-    path('detalleventa/',include('modulos.urls'))
+    path('detalleventa/',include('modulos.urls')),
+    path('login/', include('modulos.urls')),
+    path('api/', include('modulos.urls')), 
 ]

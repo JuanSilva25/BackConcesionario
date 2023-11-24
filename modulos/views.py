@@ -2,8 +2,7 @@ from rest_framework import viewsets
 from .serializer import UsuarioSerializer,RolesSerializer,PermisoRutasSerializer,RutasSerializer,CategoriaRepuestoSerializer,RepuestoSerializer,OrdenTrabajoSerializer,InventarioVehiculoSerializer
 from .serializer import InventarioRepuestoSerializer,CotizacionSerializer,VehiculoSerializer,SucursalSerializer,VentaSerializer,DetalleVentaSerializer
 from .models import Usuario,Roles,PermisoRutas,Rutas,CategoriaRepuesto,Repuesto,OrdenTrabajo,InventarioVehiculo,InventarioRepuesto,Cotizacion,Sucursal,Vehiculo,Venta,DetalleVenta
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
+
 
 # Create your views here.
 class UsuarioView(viewsets.ModelViewSet):
@@ -58,11 +57,6 @@ class VehiculoView(viewsets.ModelViewSet):
      serializer_class = VehiculoSerializer
      queryset = Vehiculo.objects.all()
      
-@api_view(['GET'])
-def lista_inventario_vehiculos(request):
-    inventario_vehiculos = InventarioVehiculo.objects.all()
-    serializer = InventarioVehiculoSerializer(inventario_vehiculos, many=True)
-    return Response(serializer.data)
      
 class VentaView(viewsets.ModelViewSet):
       serializer_class = VentaSerializer
@@ -73,47 +67,32 @@ class DetalleVentaView(viewsets.ModelViewSet):
       serializer_class = DetalleVentaSerializer
       queryset = DetalleVenta.objects.all()
 
+
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from .models import Usuario
 from django.db import IntegrityError
-from django.contrib.sessions.models import Session
+from .serializer import UsuarioSerializer  # Asegúrate de tener un serializador para el modelo Usuario3
 
 @csrf_exempt
 def login_view(request):
-    if request.method == 'POST':
-        username = request.POST.get('username')
-        password = request.POST.get('password')
+    if request.method == 'GET':
+        username = request.GET.get('username')
+        password = request.GET.get('password')
 
         try:
+            # Intenta obtener al usuario a través del nombre de usuario
             user = Usuario.objects.get(username=username)
         except Usuario.DoesNotExist:
             return JsonResponse({'message': 'Credenciales inválidas'}, status=401)
 
+        # Verifica la contraseña
         if user.password == password:
-            # Almacena el ID de usuario en la sesión
-            request.session['user_id'] = user.idUsuario
-
-            return JsonResponse({'message': 'Login exitoso'})
+            # Iniciar sesión
+            # Aquí puedes realizar acciones adicionales antes de iniciar sesión si es necesario
+            user_data = UsuarioSerializer(user).data  # Serializa los datos del usuario
+            return JsonResponse({'message': 'Login exitoso', 'user': user_data})  # Incluye los datos del usuario en la respuesta
         else:
             return JsonResponse({'message': 'Credenciales inválidas'}, status=401)
 
     return JsonResponse({'message': 'Método no permitido'}, status=405)
-
-from django.shortcuts import render, redirect
-from .models import Usuario
-from django.contrib.auth.decorators import login_required
-
-@login_required(login_url='login')
-def mi_vista_protegida(request):
-    user_id = request.session.get('user_id')
-    if user_id:
-        # El usuario está autenticado, puedes obtener su objeto de usuario
-        user = Usuario.objects.get(idUsuario=user_id)
-        print(user.username)
-        print(user.nombre)
-        # ...
-        return render(request, 'mi_template.html', {'usuario': user})
-    else:
-        # El usuario no está autenticado, puedes redirigirlo a la página de inicio de sesión
-        return redirect('login')

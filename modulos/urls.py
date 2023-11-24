@@ -2,7 +2,6 @@ from django.urls import path, include
 from rest_framework.documentation import include_docs_urls
 from rest_framework import routers
 from modulos import views
-from .views import lista_inventario_vehiculos
 
 #api versioning
 router = routers.DefaultRouter()
@@ -25,7 +24,6 @@ router.register(r'detalleventa',views.DetalleVentaView, 'detalleventa')
 urlpatterns = [
     path('', include(router.urls)),
     path('login/', views.login_view, name='login'),
-    path('mi_vista_protegida/', views.mi_vista_protegida, name='mi_vista_protegida'),
     #path('api', include('modulos.urls')),
     #path('docs/', include_docs_urls(title='usuarios api')),
 ]

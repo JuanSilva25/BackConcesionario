@@ -72,13 +72,13 @@ from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from .models import Usuario
 from django.db import IntegrityError
-from .serializer import UsuarioSerializer  # Asegúrate de tener un serializador para el modelo Usuario3
+from .serializer import UsuarioSerializer  # Asegúrate de tener un serializador para el modelo Usuario
 
 @csrf_exempt
 def login_view(request):
-    if request.method == 'GET':
-        username = request.GET.get('username')
-        password = request.GET.get('password')
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
 
         try:
             # Intenta obtener al usuario a través del nombre de usuario
@@ -94,5 +94,10 @@ def login_view(request):
             return JsonResponse({'message': 'Login exitoso', 'user': user_data})  # Incluye los datos del usuario en la respuesta
         else:
             return JsonResponse({'message': 'Credenciales inválidas'}, status=401)
+
+    elif request.method == 'GET':
+        username = request.GET.get('username')
+        password = request.GET.get('password')
+        return JsonResponse({'username': username, 'password': password})
 
     return JsonResponse({'message': 'Método no permitido'}, status=405)

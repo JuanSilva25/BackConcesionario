@@ -292,6 +292,8 @@ class Venta(models.Model):
     class Meta:
         db_table = 'Venta'
 
+
+
 class DetalleVenta(models.Model):
     detalleVentaId = models.AutoField(primary_key=True)
     venta = models.ForeignKey(Venta, on_delete=models.CASCADE, null=True)
@@ -301,9 +303,6 @@ class DetalleVenta(models.Model):
     cantidad_repuesto = models.PositiveIntegerField(default=0)
     total_vehiculo = models.DecimalField(max_digits=10, decimal_places=2, default=0.0, editable=False)
     total_repuesto = models.DecimalField(max_digits=10, decimal_places=2, default=0.0, editable=False)
-
-    class Meta:
-        db_table = 'DetalleVenta'
 
     def save(self, *args, **kwargs):
         # Calcular los totales antes de guardar el objeto DetalleVenta
@@ -325,5 +324,8 @@ class DetalleVenta(models.Model):
             self.venta.save()  # Guardar el objeto Venta después de actualizar precioTotal
             
             
+            
+            
+
             
             

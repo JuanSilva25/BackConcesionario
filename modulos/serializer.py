@@ -126,8 +126,6 @@ class VehiculoSerializer(serializers.ModelSerializer):
  
  
 class VentaSerializer(serializers.ModelSerializer):
-
-
     class Meta:
         model = Venta
         fields = '__all__'
@@ -136,17 +134,9 @@ class VentaSerializer(serializers.ModelSerializer):
         representation = super().to_representation(instance)
         representation['vendedor_id'] = UsuarioSerializer(instance.vendedor_id).data
         representation['sucursal'] = SucursalSerializer(instance.sucursal).data
-    
-        return representation
-
-
-
-    
-    def to_representation(self, instance):
-        representation = super().to_representation(instance)
         representation['detalleventa_set'] = DetalleVentaSerializer(instance.detalleventa_set.all(), many=True).data
         return representation
-    
+   
 
 class DetalleVentaSerializer(serializers.ModelSerializer):
     #vehiculo = VehiculoSerializer(read_only=True)

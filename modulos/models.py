@@ -164,12 +164,11 @@ class InventarioVehiculo(models.Model):
             'cantidad': self.cantidad,
             'vehiculo': vehiculo_data,
         }
-
-    def actualizar_inventario(self, cantidad_vendida):
+    def actualizar_inventario(self, cantidad_vendida, estado_venta):
         """
         Actualiza la cantidad de vehículos en el inventario después de una venta.
         """
-        if cantidad_vendida > 0:
+        if cantidad_vendida > 0 and estado_venta != 'cotizacion':
             try:
                 # Obtén o crea el inventario del vehículo
                 inventario_existente, creado = InventarioVehiculo.objects.get_or_create(vehiculo=self.vehiculo)
@@ -209,12 +208,12 @@ class InventarioRepuesto(models.Model):
     class Meta:
         db_table = 'InventarioRepuesto'
         verbose_name_plural = 'InventarioRepuesto'
-
-    def actualizar_inventario(self, cantidad_vendida):
+ 
+def actualizar_inventario(self, cantidad_vendida, estado_venta):
         """
         Actualiza la cantidad de repuestos en el inventario después de una venta.
         """
-        if cantidad_vendida > 0:
+        if cantidad_vendida > 0 and estado_venta != 'cotizacion':
             try:
                 # Obtén o crea el inventario del repuesto
                 inventario_existente, creado = InventarioRepuesto.objects.get_or_create(repuesto=self.repuesto)
@@ -279,6 +278,7 @@ class Venta(models.Model):
         ('en proceso', 'En proceso'),
         ('finalizado', 'Finalizado'),
         ('cancelado', 'Cancelado'),
+        ('cotizacion', 'En proceso')
     ]
 
     estado = models.CharField(max_length=50, choices=ESTADOS, default='En proceso')
@@ -290,6 +290,10 @@ class Venta(models.Model):
 
     class Meta:
         db_table = 'Venta'
+        
+        
+        
+    
 
 class DetalleVenta(models.Model):
     detalleVentaId = models.AutoField(primary_key=True)

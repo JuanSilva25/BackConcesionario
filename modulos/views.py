@@ -102,15 +102,13 @@ def login_view(request):
 
     return JsonResponse({'message': 'Método no permitido'}, status=405)
 
-
-
-
-
 from django.db.models import Count, Sum
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from .models import OrdenTrabajo, DetalleVenta, Venta
 from .serializer import VentaSerializer
+from rest_framework import request
+
 
 class TotalesView(APIView):
     def get(self, request):
@@ -139,4 +137,31 @@ class TotalesView(APIView):
             'cantidad_ventas_vehiculos': cantidad_ventas_vehiculos,
             'cantidad_ventas_repuestos': cantidad_ventas_repuestos,
             'ultimas_ventas': serializer.data,
+        })
+
+
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from .models import OrdenTrabajo
+from .serializer import OrdenTrabajoSerializer
+
+class OrdenesClienteView(APIView):
+    def post(self, request):
+        placa = request.data.get('placa', None)
+        identificacion = request.data.get('identificacion', None)
+
+        if placa is not None:
+            # Filtrar OrdenTrabajo basándose en la placa
+            ordenes = OrdenTrabajo.objects.filter(placa=placa)
+        elif identificacion is not None:
+            # Filtrar OrdenTrabajo basándose en el número de identificación
+            ordenes = OrdenTrabajo.objects.filter(identificacion_Cliente=identificacion)
+        else:
+            ordenes = OrdenTrabajo.objects.all()
+
+        # Serializar las órdenes
+        ordenes_serializer = OrdenTrabajoSerializer(ordenes, many=True)
+
+        return Response({
+            'ordenes': ordenes_serializer.data,
         })

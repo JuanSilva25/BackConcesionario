@@ -100,6 +100,7 @@ class OrdenTrabajo(models.Model):
     img = models.TextField( default='sin imagen') 
     color = models.CharField(max_length=100,default= "")
     modelo = models.IntegerField(default= "2023")
+    identificacion_Cliente =models.IntegerField(default= "123")
 
     ESTADOS = [
         ('recibida', 'Recibida'),

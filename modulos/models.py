@@ -317,8 +317,8 @@ class DetalleVenta(models.Model):
     repuesto = models.ForeignKey('Repuesto', on_delete=models.CASCADE, null=True, blank=True)
     cantidad_vehiculo = models.PositiveIntegerField(default=0)
     cantidad_repuesto = models.PositiveIntegerField(default=0)
-    precio_unitario_vehiculo = models.DecimalField(max_digits=10, decimal_places=2, default=0.0, editable=False)
-    precio_unitario_repuesto = models.DecimalField(max_digits=10, decimal_places=2, default=0.0, editable=False)
+    precio_unitario_vehiculo = models.DecimalField(max_digits=20, decimal_places=2, default=0.0, editable=False)
+    precio_unitario_repuesto = models.DecimalField(max_digits=20, decimal_places=2, default=0.0, editable=False)
     total_vehiculo = models.DecimalField(max_digits=20, decimal_places=2, default=0.0, editable=False)
     total_repuesto = models.DecimalField(max_digits=20, decimal_places=2, default=0.0, editable=False)
 

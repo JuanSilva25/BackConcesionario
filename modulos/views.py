@@ -101,3 +101,42 @@ def login_view(request):
         return JsonResponse({'username': username, 'password': password})
 
     return JsonResponse({'message': 'Método no permitido'}, status=405)
+
+
+
+
+
+from django.db.models import Count, Sum
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from .models import OrdenTrabajo, DetalleVenta, Venta
+from .serializer import VentaSerializer
+
+class TotalesView(APIView):
+    def get(self, request):
+        # Totales para OrdenTrabajo
+        total_ordenes = OrdenTrabajo.objects.count()
+        total_precios = OrdenTrabajo.objects.aggregate(total=Sum('precioTotal'))['total'] or 0
+
+        # Totales para DetalleVenta
+        total_ventas_vehiculos = DetalleVenta.objects.filter(vehiculo__isnull=False).aggregate(total=Sum('total_vehiculo'))['total'] or 0
+        total_ventas_repuestos = DetalleVenta.objects.filter(repuesto__isnull=False).aggregate(total=Sum('total_repuesto'))['total'] or 0
+        total_ventas_general = total_ventas_vehiculos + total_ventas_repuestos
+
+        cantidad_ventas_vehiculos = DetalleVenta.objects.filter(vehiculo__isnull=False).aggregate(cantidad=Sum('cantidad_vehiculo'))['cantidad'] or 0
+        cantidad_ventas_repuestos = DetalleVenta.objects.filter(repuesto__isnull=False).aggregate(cantidad=Sum('cantidad_repuesto'))['cantidad'] or 0
+
+        # Últimas 10 ventas
+        ultimas_ventas = Venta.objects.order_by('-fecha')[:10]
+        serializer = VentaSerializer(ultimas_ventas, many=True)
+
+        return Response({
+            'total_ordenes': total_ordenes,
+            'total_precios_ordenes': total_precios,
+            'total_ventas_vehiculos': total_ventas_vehiculos,
+            'total_ventas_repuestos': total_ventas_repuestos,
+            'total_ventas_general': total_ventas_general,
+            'cantidad_ventas_vehiculos': cantidad_ventas_vehiculos,
+            'cantidad_ventas_repuestos': cantidad_ventas_repuestos,
+            'ultimas_ventas': serializer.data,
+        })

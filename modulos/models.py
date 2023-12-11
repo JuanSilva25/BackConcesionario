@@ -6,7 +6,7 @@ from django.contrib.auth.models import User
 from django.db.models import Sum
 from django.db import transaction
 from decimal import Decimal
-
+from django import forms
 class Roles(models.Model):
     id = models.AutoField(primary_key=True)
     rol = models.CharField(max_length=50)
@@ -94,14 +94,19 @@ class OrdenTrabajo(models.Model):
     correo= models.CharField(max_length=100)
     descripcion = models.CharField( max_length=100)
     fechainicio = models.CharField(default=datetime.date.today)
-    fechaFinal = models.CharField(default=datetime.date.today)
+    fechaFinal = models.DateField(null=True, blank=True)
+    marca = models.CharField(max_length=100,default= "")
+    nombre = models.CharField(max_length=100, null=True,default= "")
+    img = models.TextField( default='sin imagen') 
+    color = models.CharField(max_length=100,default= "")
+    modelo = models.IntegerField(default= "2023")
 
     ESTADOS = [
         ('recibida', 'Recibida'),
         ('en proceso', 'En proceso'),
         ('finalizado', 'Finalizado'),
     ]
-
+   
     estado = models.CharField(max_length=50, choices=ESTADOS)
     precioTotal = models.FloatField(default=0.0)
         
@@ -110,7 +115,17 @@ class OrdenTrabajo(models.Model):
     class Meta:
         db_table = 'OrdenTrabajo'
         verbose_name_plural = 'OrdenTrabajo'
+class OrdenTrabajoForm(forms.ModelForm):
+    class Meta:
+        model = OrdenTrabajo
+        fields = '__all__'
 
+    def _init_(self, *args, **kwargs):
+        super()._init_(*args, **kwargs)
+        # Deshabilitar el campo fechaFinal a menos que el estado sea "finalizado"
+        if self.instance.estado != 'finalizado':
+            self.fields['fechaFinal'].widget.attrs['readonly']=True
+            self.fields['fechaFinal'].widget.attrs['disabled']=True
 
 
 class Vehiculo(models.Model):
@@ -209,7 +224,7 @@ class InventarioRepuesto(models.Model):
         db_table = 'InventarioRepuesto'
         verbose_name_plural = 'InventarioRepuesto'
  
-def actualizar_inventario(self, cantidad_vendida, estado_venta):
+    def actualizar_inventario(self, cantidad_vendida, estado_venta):
         """
         Actualiza la cantidad de repuestos en el inventario después de una venta.
         """
@@ -231,9 +246,8 @@ class Cotizacion(models.Model):
     vehiculo = models.ForeignKey('Vehiculo', on_delete=models.CASCADE, null=True)
     usuario = models.ForeignKey('Usuario', on_delete=models.CASCADE,  null=True, limit_choices_to={'rol__id': 1})
     fecha = models.CharField(default=datetime.date.today)
-    precio = models.FloatField()
     permiso_Cotizaciones= models.OneToOneField(PermisoRutas, on_delete=models.CASCADE, null=True, limit_choices_to={'idPermiso': 7})
-
+    
     def __str__(self):
         return f"Cotización {self.cotizacionId} - Vehículo: {self.vehiculo}, Usuario: {self.usuario}"
     
@@ -278,7 +292,7 @@ class Venta(models.Model):
         ('en proceso', 'En proceso'),
         ('finalizado', 'Finalizado'),
         ('cancelado', 'Cancelado'),
-        ('cotizacion', 'En proceso')
+        ('cotizacion', 'Cotizacion')
     ]
 
     estado = models.CharField(max_length=50, choices=ESTADOS, default='En proceso')
@@ -324,25 +338,21 @@ class DetalleVenta(models.Model):
 
         # Actualizar el precioTotal de la venta después de guardar el detalle
         self.actualizar_precio_total_venta()
-
     def actualizar_precio_total_venta(self):
-        # Calcular el precioTotal de la venta sumando los totales de detalles asociados
+    # Calcular el precioTotal de la venta sumando los totales de detalles asociados
         precio_total_vehiculo = DetalleVenta.objects.filter(venta=self.venta, vehiculo__isnull=False).aggregate(Sum('total_vehiculo'))['total_vehiculo__sum'] or Decimal('0.00')
         precio_total_repuesto = DetalleVenta.objects.filter(venta=self.venta, repuesto__isnull=False).aggregate(Sum('total_repuesto'))['total_repuesto__sum'] or Decimal('0.00')
 
-        # Actualizar el precioTotal de la venta
+    # Actualizar el precioTotal de la venta
         self.venta.precioTotal = precio_total_vehiculo + precio_total_repuesto
         self.venta.save()
 
-        # Actualizar el inventario de vehículos
+    # Actualizar el inventario de vehículos
         if self.vehiculo:
             inventario_vehiculo = InventarioVehiculo.objects.get(vehiculo=self.vehiculo)
-            inventario_vehiculo.actualizar_inventario(self.cantidad_vehiculo)
+            inventario_vehiculo.actualizar_inventario(self.cantidad_vehiculo, estado_venta=self.venta.estado)
 
-        # Actualizar el inventario de repuestos
-        if self.repuesto:
-            inventario_repuesto = InventarioRepuesto.objects.get(repuesto=self.repuesto)
-            inventario_repuesto.actualizar_inventario(self.cantidad_repuesto)
-            
-            
-            
+    # Actualizar el inventario de repuestos
+        #if self.repuesto:
+            #inventario_repuesto = InventarioRepuesto.objects.get(repuesto=self.repuesto)
+            #inventario_repuesto.actualizar_inventario(self.cantidad_repuesto, estado_venta=self.venta.estado)
